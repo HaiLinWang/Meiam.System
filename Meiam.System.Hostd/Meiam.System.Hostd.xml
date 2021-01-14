@@ -586,7 +586,7 @@
             <summary>
             更新用户数据权限
             </summary>
-            <returns></returns>
+            <returns></returns>_userRelationService.BeginTran();
         </member>
         <member name="T:Meiam.System.Hostd.Controllers.System.LogsController">
             <summary>
@@ -1159,26 +1159,6 @@
             </summary>
             <returns></returns>
         </member>
-        <member name="F:Meiam.System.Hostd.Extensions.ITokenManager._memoryCache">
-            <summary>
-            缓存组件
-            </summary>
-        </member>
-        <member name="F:Meiam.System.Hostd.Extensions.ITokenManager._onlineService">
-            <summary>
-            在线会话
-            </summary>
-        </member>
-        <member name="F:Meiam.System.Hostd.Extensions.ITokenManager._usersService">
-            <summary>
-            用户接口
-            </summary>
-        </member>
-        <member name="F:Meiam.System.Hostd.Extensions.ITokenManager._accessor">
-            <summary>
-            HTTP上下文
-            </summary>
-        </member>
         <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.CreateSession(Meiam.System.Model.Sys_Users,Meiam.System.Model.SourceType,System.Int32)">
             <summary>
             创建 Session
@@ -1208,7 +1188,7 @@
             </summary>
             <param name="userId"></param>
         </member>
-        <member name="P:Meiam.System.Hostd.Extensions.ITokenManager.GetSysToken">
+        <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.GetSys_Token">
             <summary>
             获取Session
             </summary>
@@ -1235,6 +1215,215 @@
             <returns></returns>
         </member>
         <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.GetSessionItem``1(System.String,System.String)">
+            <summary>
+            获取 Session 内容
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="session"></param>
+            <param name="key"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.CreateSessionAsync(Meiam.System.Model.Sys_Users,Meiam.System.Model.SourceType,System.Int32)">
+            <summary>
+            创建 Session
+            </summary>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.UpdateSessionAsync(System.String)">
+            <summary>
+            更新Session
+            </summary>
+            <param name="userSession">用户Session</param>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.RefreshSessionAsync(System.String)">
+            <summary>
+            刷新用户所有Session信息
+            </summary>
+            <param name="userId"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.RemoveSessionAsync(System.String)">
+            <summary>
+            清除指定 Session
+            </summary>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.RemoveAllSessionAsync(System.String)">
+            <summary>
+            清除用户所有 Session
+            </summary>
+            <param name="userId"></param>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.GetSessionInfoAsync">
+            <summary>
+            当前登录用户信息
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.IsAuthenticatedAsync">
+            <summary>
+            判断用户是否登录
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.GetSessionItemAsync``1(System.String)">
+            <summary>
+            获取 Session 内容
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="key"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.ITokenManager.GetSessionItemAsync``1(System.String,System.String)">
+            <summary>
+            获取 Session 内容
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="session"></param>
+            <param name="key"></param>
+            <returns></returns>
+        </member>
+        <member name="T:Meiam.System.Hostd.Extensions.TokenManager">
+            <summary>
+            token
+            </summary>
+        </member>
+        <member name="F:Meiam.System.Hostd.Extensions.TokenManager._memoryCache">
+            <summary>
+            缓存组件
+            </summary>
+        </member>
+        <member name="F:Meiam.System.Hostd.Extensions.TokenManager._onlineService">
+            <summary>
+            在线会话
+            </summary>
+        </member>
+        <member name="F:Meiam.System.Hostd.Extensions.TokenManager._usersService">
+            <summary>
+            用户接口
+            </summary>
+        </member>
+        <member name="F:Meiam.System.Hostd.Extensions.TokenManager._accessor">
+            <summary>
+            HTTP上下文
+            </summary>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.CreateSession(Meiam.System.Model.Sys_Users,Meiam.System.Model.SourceType,System.Int32)">
+            <summary>
+            创建 Session
+            </summary>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.UpdateSession(System.String)">
+            <summary>
+            更新Session
+            </summary>
+            <param name="userSession">用户Session</param>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.RefreshSession(System.String)">
+            <summary>
+            刷新用户所有Session信息
+            </summary>
+            <param name="userId"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.RemoveSession(System.String)">
+            <summary>
+            清除指定 Session
+            </summary>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.RemoveAllSession(System.String)">
+            <summary>
+            清除用户所有 Session
+            </summary>
+            <param name="userId"></param>
+        </member>
+        <member name="P:Meiam.System.Hostd.Extensions.TokenManager.GetSysToken">
+            <summary>
+            获取Session
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.GetSessionInfo">
+            <summary>
+            当前登录用户信息
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.IsAuthenticated">
+            <summary>
+            判断用户是否登录
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.GetSessionItem``1(System.String)">
+            <summary>
+            获取 Session 内容
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="key"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.GetSessionItem``1(System.String,System.String)">
+            <summary>
+            获取 Session 内容
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="session"></param>
+            <param name="key"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.CreateSessionAsync(Meiam.System.Model.Sys_Users,Meiam.System.Model.SourceType,System.Int32)">
+            <summary>
+            创建 Session
+            </summary>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.UpdateSessionAsync(System.String)">
+            <summary>
+            更新Session
+            </summary>
+            <param name="userSession">用户Session</param>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.RefreshSessionAsync(System.String)">
+            <summary>
+            刷新用户所有Session信息
+            </summary>
+            <param name="userId"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.RemoveSessionAsync(System.String)">
+            <summary>
+            清除指定 Session
+            </summary>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.RemoveAllSessionAsync(System.String)">
+            <summary>
+            清除用户所有 Session
+            </summary>
+            <param name="userId"></param>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.GetSessionInfoAsync">
+            <summary>
+            获取Session
+            </summary>
+            <returns></returns>
+            <summary>
+            当前登录用户信息
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.IsAuthenticatedAsync">
+            <summary>
+            判断用户是否登录
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.GetSessionItemAsync``1(System.String)">
+            <summary>
+            获取 Session 内容
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="key"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Meiam.System.Hostd.Extensions.TokenManager.GetSessionItemAsync``1(System.String,System.String)">
             <summary>
             获取 Session 内容
             </summary>

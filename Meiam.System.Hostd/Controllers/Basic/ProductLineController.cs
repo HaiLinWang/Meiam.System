@@ -55,7 +55,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         [Authorization]
         public async Task<IActionResult> Query([FromBody] ProductLineQueryDto parm)
         {
-            var response = await  _lineService.QueryLinePages(parm);
+            var response = await  _lineService.QueryLinePagesAsync(parm);
             return toResponse(response);
         }
 
@@ -73,7 +73,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
             {
                 return toResponse(StatusCodeType.Error, "生设备 Id 不能为空");
             }
-            return toResponse(await  _lineService.GetLine(id));
+            return toResponse(await  _lineService.GetLineAsync(id));
         }
 
         /// <summary>

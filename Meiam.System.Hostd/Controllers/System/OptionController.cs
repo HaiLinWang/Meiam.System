@@ -56,7 +56,7 @@ namespace Meiam.System.Hostd.Controllers.System
 
             predicate = predicate.AndIF(!string.IsNullOrEmpty(parm.QueryText), m => m.Option.Contains(parm.QueryText));
 
-            var response =await await  _optionService.GetPagesAsync(predicate.ToExpression(), parm);
+            var response =await   _optionService.GetPagesAsync(predicate.ToExpression(), parm);
 
             return toResponse(response);
         }
