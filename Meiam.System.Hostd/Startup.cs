@@ -38,7 +38,7 @@ namespace Meiam.System.Hostd
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            #region ¿çÓòÉèÖÃ
+            #region è·¨åŸŸè®¾ç½®
             services.AddCors(c =>
             {
                 c.AddPolicy("LimitRequests", policy =>
@@ -51,54 +51,54 @@ namespace Meiam.System.Hostd
             });
             #endregion
 
-            #region ×Ô¶¯Ó³Éä
+            #region è‡ªåŠ¨æ˜ å°„
             services.AddScoped<IMapper, ServiceMapper>();
             #endregion
 
-            #region ËµÃ÷ÎÄµµ
+            #region è¯´æ˜æ–‡æ¡£
             services.AddSwaggerGen(c =>
             {
 
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Version = "v1",
-                    Title = $"{AppSettings.Configuration["Startup:ApiName"]} ½Ó¿ÚÎÄµµ",
+                    Title = $"{AppSettings.Configuration["Startup:ApiName"]} æ¥å£æ–‡æ¡£",
                     Description = $"{AppSettings.Configuration["Startup:ApiName"]} HTTP API "
                 });
 
                 try
                 {
-                    //¾ÍÊÇÕâÀï
-                    var xmlPath = Path.Combine(AppContext.BaseDirectory, "Meiam.System.Hostd.xml");//Õâ¸ö¾ÍÊÇ¸Õ¸ÕÅäÖÃµÄxmlÎÄ¼şÃû
-                    c.IncludeXmlComments(xmlPath, true);//Ä¬ÈÏµÄµÚ¶ş¸ö²ÎÊıÊÇfalse£¬Õâ¸öÊÇcontrollerµÄ×¢ÊÍ£¬¼ÇµÃĞŞ¸Ä
+                    //å°±æ˜¯è¿™é‡Œ
+                    var xmlPath = Path.Combine(AppContext.BaseDirectory, "Meiam.System.Hostd.xml");//è¿™ä¸ªå°±æ˜¯åˆšåˆšé…ç½®çš„xmlæ–‡ä»¶å
+                    c.IncludeXmlComments(xmlPath, true);//é»˜è®¤çš„ç¬¬äºŒä¸ªå‚æ•°æ˜¯falseï¼Œè¿™ä¸ªæ˜¯controllerçš„æ³¨é‡Šï¼Œè®°å¾—ä¿®æ”¹
 
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Xml ÎÄ¼ş¶ªÊ§£¬Çë¼ì²é²¢¿½±´¡£\n{ ex.Message}");
+                    Console.WriteLine($"Xml æ–‡ä»¶ä¸¢å¤±ï¼Œè¯·æ£€æŸ¥å¹¶æ‹·è´ã€‚\n{ ex.Message}");
                 }
 
-                // ¿ªÆô¼ÓÈ¨Ğ¡Ëø
+                // å¼€å¯åŠ æƒå°é”
                 c.OperationFilter<AppendAuthorizeFilter>();
 
             });
             #endregion
 
-            #region ÅäÖÃJson¸ñÊ½
+            #region é…ç½®Jsonæ ¼å¼
             services.AddMvc().AddNewtonsoftJson(options =>
             {
-                // ºöÂÔÑ­»·ÒıÓÃ
+                // å¿½ç•¥å¾ªç¯å¼•ç”¨
                 options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-                // ²»Ê¹ÓÃÍÕ·å
+                // ä¸ä½¿ç”¨é©¼å³°
                 //options.SerializerSettings.ContractResolver = new DefaultContractResolver();
-                // ÉèÖÃÊ±¼ä¸ñÊ½
+                // è®¾ç½®æ—¶é—´æ ¼å¼
                 options.SerializerSettings.DateFormatString = "yyyy-MM-dd HH:mm:ss";
-                // Èç×Ö¶ÎÎªnullÖµ£¬¸Ã×Ö¶Î²»»á·µ»Øµ½Ç°¶Ë
+                // å¦‚å­—æ®µä¸ºnullå€¼ï¼Œè¯¥å­—æ®µä¸ä¼šè¿”å›åˆ°å‰ç«¯
                 //options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
             });
             #endregion
 
-            #region »ñÈ¡¿Í»§¶Ë IP
+            #region è·å–å®¢æˆ·ç«¯ IP
             services.Configure<ForwardedHeadersOptions>(options =>
             {
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -107,42 +107,42 @@ namespace Meiam.System.Hostd
             });
             #endregion
 
-            #region ¼ÓÔØÏî
+            #region åŠ è½½é¡¹
 
-            //×¢Èë»º´æ
+            //æ³¨å…¥ç¼“å­˜
             services.AddMemoryCache();
 
-            //×¢Èë HTTPCONTEXT
+            //æ³¨å…¥ HTTPCONTEXT
             services.AddHttpContextAccessor();
 
-            //×¢Èë TokenManager
+            //æ³¨å…¥ TokenManager
             services.AddScoped<TokenManager>();
 
-            //×¢ÈëÊµÌåÓ³Éä·şÎñ
+            //æ³¨å…¥å®ä½“æ˜ å°„æœåŠ¡
             services.AddScoped<IMapper, ServiceMapper>();
 
-            //×¢Èë¶ÌĞÅ·şÎñ
+            //æ³¨å…¥çŸ­ä¿¡æœåŠ¡
             services.AddSingleton<IAliyunSmsServices, AliyunSmsServices>();
 
-            //×¢ÈëÈ«¾ÖÒì³£¹ıÂË
+            //æ³¨å…¥å…¨å±€å¼‚å¸¸è¿‡æ»¤
             services.AddControllers(options =>
             {
-                //È«¾ÖÒì³£¹ıÂË
+                //å…¨å±€å¼‚å¸¸è¿‡æ»¤
                 options.Filters.Add<GlobalExceptions>();
-                //È«¾ÖÈÕÖ¾
+                //å…¨å±€æ—¥å¿—
                 options.Filters.Add<GlobalActionMonitor>();
 
             })
             .ConfigureApiBehaviorOptions(options =>
             {
-                //ÒÖÖÆÏµÍ³×Ô´øÄ£ĞÍÑéÖ¤
-                options.SuppressModelStateInvalidFilter = true;  
+                //æŠ‘åˆ¶ç³»ç»Ÿè‡ªå¸¦æ¨¡å‹éªŒè¯
+                options.SuppressModelStateInvalidFilter = true;
             });
 
-            //¿ªÆô¼Æ»®ÈÎÎñ
+            //å¼€å¯è®¡åˆ’ä»»åŠ¡
             services.AddTaskSchedulers();
 
-            //×¢²áREDIS ·şÎñ
+            //æ³¨å†ŒREDIS æœåŠ¡
             RedisServer.Initalize();
 
             #endregion
@@ -151,7 +151,7 @@ namespace Meiam.System.Hostd
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            #region ¿ª·¢´íÎóÌáÊ¾
+            #region å¼€å‘é”™è¯¯æç¤º
 
             if (env.IsDevelopment())
             {
@@ -159,37 +159,37 @@ namespace Meiam.System.Hostd
             };
             #endregion
 
-            #region ¿çÓòÉèÖÃ
+            #region è·¨åŸŸè®¾ç½®
             app.UseCors("LimitRequests");
             #endregion
 
-            #region ËµÃ÷ÎÄµµ
+            #region è¯´æ˜æ–‡æ¡£
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 var ApiName = AppSettings.Configuration["Startup:ApiName"];
 
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
-                c.RoutePrefix = string.Empty; 
+                c.RoutePrefix = string.Empty;
             });
             #endregion
 
-            #region ¼ÓÔØÏî
+            #region åŠ è½½é¡¹
 
-            // ÇëÇóÈÕÖ¾¼à¿Ø
+            // è¯·æ±‚æ—¥å¿—ç›‘æ§
             app.UseMiddleware<RequestMiddleware>();
-            // Ê¹ÓÃ¾²Ì¬ÎÄ¼ş
+            // ä½¿ç”¨é™æ€æ–‡ä»¶
             app.UseForwardedHeaders();
-            // Ê¹ÓÃ¾²Ì¬ÎÄ¼ş
+            // ä½¿ç”¨é™æ€æ–‡ä»¶
             app.UseStaticFiles();
-            // Ê¹ÓÃcookie
+            // ä½¿ç”¨cookie
             app.UseCookiePolicy();
-            // Ê¹ÓÃRouting
+            // ä½¿ç”¨Routing
             app.UseRouting();
 
             app.UseResponseCaching();
 
-            // »Ö¸´ÈÎÎñ
+            // æ¢å¤ä»»åŠ¡
             app.UseAddTaskSchedulers();
 
             app.UseEndpoints(endpoints =>
@@ -199,14 +199,14 @@ namespace Meiam.System.Hostd
             #endregion
         }
 
-        #region ×Ô¶¯×¢Èë·şÎñ
+        #region è‡ªåŠ¨æ³¨å…¥æœåŠ¡
         public void ConfigureContainer(ContainerBuilder builder)
         {
             var assemblysServices = Assembly.Load("Meiam.System.Interfaces");
             builder.RegisterAssemblyTypes(assemblysServices)
-                .InstancePerDependency()//Ë²Ê±µ¥Àı
-               .AsImplementedInterfaces()////×Ô¶¯ÒÔÆäÊµÏÖµÄËùÓĞ½Ó¿ÚÀàĞÍ±©Â¶£¨°üÀ¨IDisposable½Ó¿Ú£©
-               .EnableInterfaceInterceptors(); //ÒıÓÃAutofac.Extras.DynamicProxy;
+                .InstancePerDependency()//ç¬æ—¶å•ä¾‹
+               .AsImplementedInterfaces()////è‡ªåŠ¨ä»¥å…¶å®ç°çš„æ‰€æœ‰æ¥å£ç±»å‹æš´éœ²ï¼ˆåŒ…æ‹¬IDisposableæ¥å£ï¼‰
+               .EnableInterfaceInterceptors(); //å¼•ç”¨Autofac.Extras.DynamicProxy;
         }
         #endregion
     }

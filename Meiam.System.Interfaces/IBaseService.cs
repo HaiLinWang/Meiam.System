@@ -44,7 +44,7 @@ namespace Meiam.System.Interfaces
         void RollbackTran();
 
         #endregion
-
+        #region 同步操作
         #region 添加操作
         /// <summary>
         /// 添加一条数据
@@ -218,6 +218,184 @@ namespace Meiam.System.Interfaces
         /// <param name="where">过滤条件</param>
         /// <returns></returns>
         int Delete(Expression<Func<T, bool>> where);
+        #endregion
+        #endregion
+        #region 异步操作
+
+        #region 添加操作
+        /// <summary>
+        /// 添加一条数据
+        /// </summary>
+        /// <param name="parm"></param>
+        /// <returns></returns>
+        Task<int> AddAsync(T parm);
+
+        /// <summary>
+        /// 批量添加数据
+        /// </summary>
+        /// <param name="parm">List<T></param>
+        /// <returns></returns>
+        Task<int> AddAsync(List<T> parm);
+
+        /// <summary>
+        /// 添加或更新数据
+        /// </summary>
+        /// <param name="parm"><T></param>
+        /// <returns></returns>
+        Task<T> SaveableAsync(T parm, Expression<Func<T, object>> uClumns = null, Expression<Func<T, object>> iColumns = null);
+
+        /// <summary>
+        /// 批量添加或更新数据
+        /// </summary>
+        /// <param name="parm">List<T></param>
+        /// <returns></returns>
+        Task<List<T>> SaveableAsync(List<T> parm, Expression<Func<T, object>> uClumns = null, Expression<Func<T, object>> iColumns = null);
+
+
+
+        #endregion
+
+        #region 查询操作
+
+        /// <summary>
+        /// 根据条件查询数据是否存在
+        /// </summary>
+        /// <param name="where">条件表达式树</param>
+        /// <returns></returns>
+        Task<bool> AnyAsync(Expression<Func<T, bool>> where);
+
+        /// <summary>
+        /// 根据条件合计字段
+        /// </summary>
+        /// <param name="where">条件表达式树</param>
+        /// <returns></returns>
+        Task<TResult> SumAsync<TResult>(Expression<Func<T, bool>> where, Expression<Func<T, TResult>> field);
+
+
+        /// <summary>
+        /// 根据主值查询单条数据
+        /// </summary>
+        /// <param name="pkValue">主键值</param>
+        /// <returns>泛型实体</returns>
+        Task<T> GetIdAsync(object pkValue);
+
+
+        /// <summary>
+        /// 根据主键查询多条数据
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        Task<List<T>> GetInAsync(object[] ids);
+
+
+        /// <summary>
+        /// 根据条件取条数
+        /// </summary>
+        /// <param name="where">条件表达式树</param>
+        /// <returns></returns>
+        Task<int> GetCountAsync(Expression<Func<T, bool>> where);
+
+
+        /// <summary>
+        /// 查询所有数据(无分页,请慎用)
+        /// </summary>
+        /// <returns></returns>
+        Task<List<T>> GetAllAsync(bool useCache = false, int cacheSecond = 3600);
+
+
+        /// <summary>
+        /// 获得一条数据
+        /// </summary>
+        /// <param name="where">Expression<Func<T, bool>></param>
+        /// <returns></returns>
+        Task<T> GetFirstAsync(Expression<Func<T, bool>> where);
+
+
+        /// <summary>
+        /// 获得一条数据
+        /// </summary>
+        /// <param name="parm">string</param>
+        /// <returns></returns>
+        Task<T> GetFirstAsync(string parm);
+
+        /// <summary>
+        /// 根据条件查询分页数据
+        /// </summary>
+        /// <param name="where"></param>
+        /// <param name="parm"></param>
+        /// <returns></returns>
+        Task<PagedInfo<T>> GetPagesAsync(Expression<Func<T, bool>> where, PageParm parm);
+
+        /// <summary>
+        /// 根据条件查询数据
+        /// </summary>
+        /// <param name="where">条件表达式树</param>
+        /// <returns></returns>
+        Task<List<T>> GetWhereAsync(Expression<Func<T, bool>> where, bool useCache = false, int cacheSecond = 3600);
+
+        /// <summary>
+        /// 根据条件查询数据
+        /// </summary>
+        /// <param name="where">条件表达式树</param>
+        /// <returns></returns>
+        Task<List<T>> GetWhereAsync(Expression<Func<T, bool>> where, Expression<Func<T, object>> order, string orderEnum = "Asc", bool useCache = false, int cacheSecond = 3600);
+
+
+        #endregion
+
+        #region 修改操作
+
+        /// <summary>
+        /// 修改一条数据
+        /// </summary>
+        /// <param name="parm">T</param>
+        /// <returns></returns>
+        Task<int> UpdateAsync(T parm);
+
+
+        /// <summary>
+        /// 批量修改
+        /// </summary>
+        /// <param name="parm">T</param>
+        /// <returns></returns>
+        Task<int> UpdateAsync(List<T> parm);
+
+
+        /// <summary>
+        /// 按查询条件更新
+        /// </summary>
+        /// <param name="where"></param>
+        /// <param name="columns"></param>
+        /// <returns></returns>
+        Task<int> UpdateAsync(Expression<Func<T, bool>> where, Expression<Func<T, T>> columns);
+
+
+        #endregion
+
+        #region 删除操作
+
+        /// <summary>
+        /// 删除一条或多条数据
+        /// </summary>
+        /// <param name="parm">string</param>
+        /// <returns></returns>
+        Task<int> DeleteAsync(object id);
+
+
+        /// <summary>
+        /// 删除一条或多条数据
+        /// </summary>
+        /// <param name="parm">string</param>
+        /// <returns></returns>
+        Task<int> DeleteAsync(object[] ids);
+
+        /// <summary>
+        /// 根据条件删除一条或多条数据
+        /// </summary>
+        /// <param name="where">过滤条件</param>
+        /// <returns></returns>
+        Task<int> DeleteAsync(Expression<Func<T, bool>> where);
+        #endregion
         #endregion
 
     }

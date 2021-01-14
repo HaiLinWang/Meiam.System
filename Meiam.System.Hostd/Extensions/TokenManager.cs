@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Meiam.System.Hostd.Extensions
 {
-    public  class TokenManager
+    public class TokenManager : ITokenManager
     {
         /// <summary>
         /// 缓存组件
@@ -42,7 +42,7 @@ namespace Meiam.System.Hostd.Extensions
             _onlineService = onlineService;
             _usersService = usersService;
         }
-
+        #region 同步操作
         #region Session 操作
         /// <summary>
         /// 创建 Session
@@ -280,6 +280,11 @@ namespace Meiam.System.Hostd.Extensions
         /// <returns></returns>
         public string GetSysToken => _accessor.HttpContext.Request.Headers["SYSTOKEN"];
 
+        public string GetSys_Token()
+        {
+            return _accessor.HttpContext.Request.Headers["SYSTOKEN"];
+        }
+
         /// <summary>
         /// 当前登录用户信息
         /// </summary>
@@ -300,7 +305,7 @@ namespace Meiam.System.Hostd.Extensions
                     _onlineService.Delete(m => m.SessionID == GetSysToken);
                 }
                 else
-                {                 
+                {
                     UpdateSession(GetSysToken);
                     return true;
                 }
@@ -342,6 +347,10 @@ namespace Meiam.System.Hostd.Extensions
             return RedisServer.Session.HGet<T>(session, key);
         }
 
+
+
+
+        #endregion
 
         #endregion
 

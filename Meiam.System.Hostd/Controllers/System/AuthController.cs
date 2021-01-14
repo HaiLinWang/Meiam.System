@@ -40,7 +40,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly ISysUserRelationService _userRelationService;
 
-        public AuthController(TokenManager tokenManager, ISysUsersService userService, ILogger<AuthController> logger, 
+        public AuthController(TokenManager tokenManager, ISysUsersService userService, ILogger<AuthController> logger,
             ISysUserRelationService userRelationService)
         {
             _tokenManager = tokenManager;
@@ -75,17 +75,17 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public IActionResult Login([FromBody]LoginDto parm)
+        public IActionResult Login([FromBody] LoginDto parm)
         {
 
-            var captchaCode = RedisServer.Cache.Get($"Captcha:{parm.Uuid}");
+            //var captchaCode = RedisServer.Cache.Get($"Captcha:{parm.Uuid}");
 
-            RedisServer.Cache.Del($"Captcha:{parm.Uuid}");
+            //RedisServer.Cache.Del($"Captcha:{parm.Uuid}");
 
-            if (parm.Code.ToUpper() != captchaCode)
-            {        
-                return toResponse(StatusCodeType.Error, "输入验证码无效");
-            }
+            //if (parm.Code.ToUpper() != captchaCode)
+            //{        
+            //    return toResponse(StatusCodeType.Error, "输入验证码无效");
+            //}
 
             var userInfo = _userService.GetFirst(o => o.UserID == parm.UserName.Trim());
 

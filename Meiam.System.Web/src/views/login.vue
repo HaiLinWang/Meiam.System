@@ -12,14 +12,14 @@
           <svg-icon slot="prefix" icon-class="password" class="el-input__icon input-icon" />
         </el-input>
       </el-form-item>
-      <el-form-item prop="code">
+      <!-- <el-form-item prop="code">
         <el-input v-model="loginForm.code" auto-complete="off" placeholder="验证码" style="width: 63%" @keyup.enter.native="handleLogin">
           <svg-icon slot="prefix" icon-class="validCode" class="el-input__icon input-icon" />
         </el-input>
         <div class="login-code">
           <img ref="verifyCode" :src="codeUrl" @click="getCode">
         </div>
-      </el-form-item>
+      </el-form-item> -->
       <el-form-item style="width:100%;">
         <el-button :loading="loading" size="medium" type="primary" style="width:100%;" @click.native.prevent="handleLogin">
           <span v-if="!loading">登 录</span>
@@ -31,7 +31,7 @@
 </template>
 
 <script>
-import { getVerifyCode } from '@/api/login'
+// import { getVerifyCode } from '@/api/login'
 import defaultSettings from '@/settings'
 export default {
   name: 'login',
@@ -60,15 +60,15 @@ export default {
     }
   },
   created() {
-    this.getCode()
+    // this.getCode()
   },
   methods: {
-    getCode() {
-      getVerifyCode().then(res => {
-        this.codeUrl = res.data.captchaCode
-        this.loginForm.uuid = res.data.captchaGUID
-      })
-    },
+    // getCode() {
+    //   getVerifyCode().then(res => {
+    //     this.codeUrl = res.data.captchaCode
+    //     this.loginForm.uuid = res.data.captchaGUID
+    //   })
+    // },
     handleLogin() {
       this.$refs.loginForm.validate(valid => {
         const user = {
