@@ -25,7 +25,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
         /// <summary>
         /// 日志管理接口
         /// </summary>
@@ -66,7 +66,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly IBaseProductProcessService _processService;
 
-        public AuthorizeController(ILogger<AuthorizeController> logger, TokenManager tokenManager, ISysUserRelationService userRelationService,
+        public AuthorizeController(ILogger<AuthorizeController> logger, ITokenManager tokenManager, ISysUserRelationService userRelationService,
             ISysDataRelationService dataRelationService, IBaseCompanyService companyService, IBaseFactoryService factoryService, IBaseWorkShopService workShopService,
             IBaseProductLineService lineService, IBaseProductProcessService processService)
         {
@@ -87,15 +87,15 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_USERS_VIEW")]
-        public IActionResult GetRelationTree(string UserId)
+        public async Task<IActionResult> GetRelationTree(string UserId)
         {
-            var dataRelation = _dataRelationService.GetAll();
-            var userRelation = _userRelationService.GetWhere(m => m.UserID == UserId);
-            var dataCompany = _companyService.GetWhere(m => m.Enable == true);
-            var dataFactory = _factoryService.GetWhere(m => m.Enable == true);
-            var dataWorkShop = _workShopService.GetWhere(m => m.Enable == true);
-            var dataLine = _lineService.GetWhere(m => m.Enable == true);
-            var dataProcess = _processService.GetWhere(m => m.Enable == true);
+            var dataRelation = await _dataRelationService.GetAllAsync();
+            var userRelation = await _userRelationService.GetWhereAsync(m => m.UserID == UserId);
+            var dataCompany = await _companyService.GetWhereAsync(m => m.Enable == true);
+            var dataFactory = await _factoryService.GetWhereAsync(m => m.Enable == true);
+            var dataWorkShop = await _workShopService.GetWhereAsync(m => m.Enable == true);
+            var dataLine = await _lineService.GetWhereAsync(m => m.Enable == true);
+            var dataProcess = await _processService.GetWhereAsync(m => m.Enable == true);
 
             List<RelationTreeVM> relations = dataCompany.Select(m => new RelationTreeVM
             {
@@ -158,10 +158,10 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 更新用户数据权限
         /// </summary>
-        /// <returns></returns>
+        /// <returns></returns>_userRelationService.BeginTran();
         [HttpPost]
         [Authorization(Power = "PRIV_USERS_UPDATE")]
-        public IActionResult UpdateUserRelation([FromBody] UpdateUserRelationDto parm)
+        public async Task<IActionResult> UpdateUserRelation([FromBody] UpdateUserRelationDto parm)
         {
             // 转化传入内容
             var relations = parm.Relation.Select(m => new Sys_UserRelation
@@ -178,14 +178,14 @@ namespace Meiam.System.Hostd.Controllers.System
                 //开启事务
                 _userRelationService.BeginTran();
                 //清空权限
-                _userRelationService.Delete(m => m.UserID == parm.UserID);
+                await _userRelationService.DeleteAsync(m => m.UserID == parm.UserID);
                 //插入权限
-                _userRelationService.Add(relations);
+                await _userRelationService.AddAsync(relations);
                 _userRelationService.CommitTran();
 
                 #region 更新登录会话记录
 
-                _tokenManager.RefreshSession(parm.UserID);
+                await _tokenManager.RefreshSessionAsync(parm.UserID);
 
                 #endregion
 
@@ -193,7 +193,7 @@ namespace Meiam.System.Hostd.Controllers.System
             }
             catch (Exception ex)
             {
-                _userRelationService.RollbackTran();
+                 _userRelationService.RollbackTran();
                 throw ex;
             }
 

@@ -47,6 +47,35 @@ namespace Meiam.System.Interfaces
         /// <returns></returns>
         bool Any(string Id, string processNo, string workshopId);
         #endregion
+        #region CustomInterface 
+        /// <summary>
+        /// 查询工序（分页）
+        /// </summary>
+        /// <param name="parm"></param>
+        /// <returns></returns>
+        Task<PagedInfo<ProductProcessVM>> QueryProcessPagesAsync(ProductProcessQueryDto parm);
 
+        /// <summary>
+        /// 根据ID查询工序
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        Task<ProductProcessVM> GetProcessAsync(string id);
+
+        /// <summary>
+        /// 查询所有工序
+        /// </summary>
+        /// <returns></returns>
+        Task<List<ProductProcessVM>> GetAllProcessAsync(bool? enable = null);
+
+        /// <summary>
+        /// 查询同车间下是否存在相同工序编码
+        /// </summary>
+        /// <param name="Id"></param>
+        /// <param name="processNo"></param>
+        /// <param name="workshopId"></param>
+        /// <returns></returns>
+        Task<bool> AnyAsync(string Id, string processNo, string workshopId);
+        #endregion
     }
 }

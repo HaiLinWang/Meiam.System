@@ -37,6 +37,25 @@ namespace Meiam.System.Interfaces
         /// <returns></returns>
         List<FactoryVM> GetAllFactory(bool? enable = null);
         #endregion
+        #region CustomInterface 
+        /// <summary>
+        /// 查询工厂（分页）
+        /// </summary>
+        /// <param name="parm"></param>
+       Task< PagedInfo<FactoryVM>> QueryFactoryPagesAsync(FactoryQueryDto parm);
 
+        /// <summary>
+        /// 根据ID查询工厂
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        Task<FactoryVM> GetFactoryAsync(string id);
+
+        /// <summary>
+        /// 查询所有工厂
+        /// </summary>
+        /// <returns></returns>
+         Task<List<FactoryVM>> GetAllFactoryAsync(bool? enable = null);
+        #endregion
     }
 }

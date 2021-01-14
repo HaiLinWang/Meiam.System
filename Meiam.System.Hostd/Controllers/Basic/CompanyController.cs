@@ -27,7 +27,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 公司定义接口
@@ -40,7 +40,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         private readonly ISysDataRelationService  _dataRelationService;
 
 
-        public CompanyController(ILogger<CompanyController> logger, TokenManager tokenManager, IBaseCompanyService companyService, ISysDataRelationService dataRelationService)
+        public CompanyController(ILogger<CompanyController> logger, ITokenManager tokenManager, IBaseCompanyService companyService, ISysDataRelationService dataRelationService)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -55,14 +55,14 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization]
-        public IActionResult Query([FromBody] CompanyQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] CompanyQueryDto parm)
         {
             //开始拼装查询条件
             var predicate = Expressionable.Create<Base_Company>();
 
             predicate = predicate.AndIF(!string.IsNullOrEmpty(parm.QueryText), m => m.CompanyName.Contains(parm.QueryText) || m.CompanyNo.Contains(parm.QueryText));
 
-            var response = _companyService.GetPages(predicate.ToExpression(), parm);
+            var response =await _companyService.GetPagesAsync(predicate.ToExpression(), parm);
 
             return toResponse(response);
         }
@@ -75,13 +75,13 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult Get(string id = null)
+        public async Task<IActionResult> Get(string id = null)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error,"公司 Id 不能为空");
             }
-            return toResponse(_companyService.GetId(id));
+            return toResponse(await _companyService.GetIdAsync(id));
         }
 
         /// <summary>
@@ -91,13 +91,13 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetAll(bool? enable = null)
+        public async Task<IActionResult> GetAll(bool? enable = null)
         {
             var predicate = Expressionable.Create<Base_Company>();
 
             predicate = predicate.AndIF(enable != null, m => m.Enable == enable);
 
-            return toResponse(_companyService.GetWhere(predicate.ToExpression()));
+            return toResponse(await _companyService.GetWhereAsync(predicate.ToExpression()));
         }
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_COMPANY_CREATE")]
-        public IActionResult Create([FromBody] CompanyCreateDto parm)
+        public async Task<IActionResult> Create([FromBody] CompanyCreateDto parm)
         {
             if (_companyService.Any(m => m.CompanyNo == parm.CompanyNo))
             {
@@ -114,9 +114,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
             }
 
             //从 Dto 映射到 实体
-            var company = parm.Adapt<Base_Company>().ToCreate(_tokenManager.GetSessionInfo());
+            var company = parm.Adapt<Base_Company>().ToCreate(await _tokenManager.GetSessionInfoAsync());
 
-            return toResponse(_companyService.Add(company));
+            return toResponse(await _companyService.AddAsync(company));
         }
 
         /// <summary>
@@ -125,16 +125,16 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_COMPANY_UPDATE")]
-        public IActionResult Update([FromBody] CompanyUpdateDto parm)
+        public async Task<IActionResult> Update([FromBody] CompanyUpdateDto parm)
         {
             if (_companyService.Any(m => m.CompanyNo == parm.CompanyNo && m.ID != parm.ID))
             {
                 return toResponse(StatusCodeType.Error, $"更新公司编码 {parm.CompanyNo} 已存在，不能重复！");
             }
 
-            var userSession = _tokenManager.GetSessionInfo();
+            var userSession =await _tokenManager.GetSessionInfoAsync();
 
-            return toResponse(_companyService.Update(m => m.ID == parm.ID, m => new Base_Company()
+            return toResponse(await _companyService.UpdateAsync(m => m.ID == parm.ID, m => new Base_Company()
             {
                 CompanyNo = parm.CompanyNo,
                 CompanyName = parm.CompanyName,
@@ -152,19 +152,19 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_COMPANY_DELETE")]
-        public IActionResult Delete(string id)
+        public async Task<IActionResult> Delete(string id)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "删除公司 Id 不能为空");
             }
 
-            if (_dataRelationService.Any(m => m.To == id))
+            if (await _dataRelationService.AnyAsync(m => m.To == id))
             {
                 return toResponse(StatusCodeType.Error, "该公司已被关联，无法删除，若要请先删除关联");
             }
 
-            var response = _companyService.Delete(id);
+            var response =await _companyService.DeleteAsync(id);
 
             return toResponse(response);
         }

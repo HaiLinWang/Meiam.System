@@ -24,7 +24,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
         /// <summary>
         /// 日志管理接口
         /// </summary>
@@ -35,7 +35,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly ISysMenuService _menuService;
 
-        public MenusController(TokenManager tokenManager, ISysMenuService menuService, ILogger<MenusController> logger)
+        public MenusController(ITokenManager tokenManager, ISysMenuService menuService, ILogger<MenusController> logger)
         {
             _tokenManager = tokenManager;
             _menuService = menuService;
@@ -49,12 +49,12 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization]
-        public IActionResult Query([FromBody] MenusQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] MenusQueryDto parm)
         {
             if (string.IsNullOrEmpty(parm.Name))
             {
                 //获取系统所有菜单
-                var allMenus = _menuService.GetAll();
+                var allMenus = await  _menuService.GetAllAsync();
 
                 return toResponse(ResolveMenuTree(allMenus));
             }
@@ -65,7 +65,7 @@ namespace Meiam.System.Hostd.Controllers.System
             predicate = predicate.And(m => m.Name.Contains(parm.Name));
 
             //获取系统所有菜单
-            var serachMenus = (_menuService.GetWhere(predicate.ToExpression(), m => m.SortIndex)).Select(m => new MenuListVM
+            var serachMenus = (await  _menuService.GetWhereAsync(predicate.ToExpression(), m => m.SortIndex)).Select(m => new MenuListVM
             {
                 ID = m.ID,
                 Name = m.Name,
@@ -100,9 +100,9 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult Get(string id)
+        public async Task<IActionResult> Get(string id)
         {
-            var response = _menuService.GetId(id);
+            var response = await  _menuService.GetIdAsync(id);
 
             return toResponse(response);
         }
@@ -113,7 +113,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_MENUS_CREATE")]
-        public IActionResult Create([FromBody] MenusCreateDto parm)
+        public async Task<IActionResult> Create([FromBody] MenusCreateDto parm)
         {
             //从 Dto 映射到 实体
             var menu = parm.Adapt<Sys_Menu>();
@@ -121,9 +121,9 @@ namespace Meiam.System.Hostd.Controllers.System
             //如果 ParentUID 是 -1 更新为 null
             menu.ParentUID = menu.ParentUID == "-1" ? null : menu.ParentUID;
 
-            menu.ToCreate(_tokenManager.GetSessionInfo());
+            menu.ToCreate(await _tokenManager.GetSessionInfoAsync());
 
-            return toResponse(_menuService.Add(menu));
+            return toResponse(await  _menuService.AddAsync(menu));
         }
 
         /// <summary>
@@ -132,13 +132,13 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_MENUS_UPDATE")]
-        public IActionResult Update([FromBody] MenusUpdateDto parm)
+        public async Task<IActionResult> Update([FromBody] MenusUpdateDto parm)
         {
-            var userSession = _tokenManager.GetSessionInfo();
+            var userSession = await _tokenManager.GetSessionInfoAsync();
 
             parm.ParentUID = parm.ParentUID == "-1" ? null : parm.ParentUID;
 
-            return toResponse(_menuService.Update(m => m.ID == parm.ID, m => new Sys_Menu()
+            return toResponse(await  _menuService.UpdateAsync(m => m.ID == parm.ID, m => new Sys_Menu()
             {
                 Name = parm.Name,
                 Icon = parm.Icon,
@@ -164,21 +164,21 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_MENUS_DELETE")]
-        public IActionResult Delete(string id)
+        public async Task<IActionResult> Delete(string id)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "删除菜单 Id 不能为空");
             }
 
-            bool hasChildren = _menuService.Any(m => m.ParentUID == id);
+            bool hasChildren = await  _menuService.AnyAsync(m => m.ParentUID == id);
 
             if (hasChildren)
             {
                 return toResponse(StatusCodeType.Error , "检测到下级含有子菜单，请先删除子菜单！");
             }
 
-            var response = _menuService.Delete(id);
+            var response = await  _menuService.DeleteAsync(id);
 
             return toResponse(response);
         }
@@ -190,11 +190,11 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetUserMenus(int system = 0)
+        public async Task<IActionResult> GetUserMenus(int system = 0)
         {
-            var _userSession = _tokenManager.GetSessionInfo();
+            var _userSession = await _tokenManager.GetSessionInfoAsync();
 
-            var menus = _menuService.GetWhere(m => (string.IsNullOrEmpty(m.ViewPower) || _userSession.UserPower.Contains(m.ViewPower)) && m.System == system, m => m.SortIndex);
+            var menus = await  _menuService.GetWhereAsync(m => (string.IsNullOrEmpty(m.ViewPower) || _userSession.UserPower.Contains(m.ViewPower)) && m.System == system, m => m.SortIndex);
 
             return toResponse(ResolveUserMenuTree(menus));
         }

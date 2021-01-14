@@ -115,8 +115,8 @@ namespace Meiam.System.Hostd
             //注入 HTTPCONTEXT
             services.AddHttpContextAccessor();
 
-            //注入 TokenManager
-            services.AddScoped<TokenManager>();
+            //注入 ITokenManager
+            services.AddScoped<ITokenManager>();
 
             //注入实体映射服务
             services.AddScoped<IMapper, ServiceMapper>();

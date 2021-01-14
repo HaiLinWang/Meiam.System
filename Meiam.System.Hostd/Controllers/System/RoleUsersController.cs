@@ -27,7 +27,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 用户角色接口
@@ -39,7 +39,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly ISysUsersService _userService;
 
-        public RoleUsersController(ILogger<RoleUsersController> logger, TokenManager tokenManager, ISysUserRoleService userRoleService, ISysUsersService userService)
+        public RoleUsersController(ILogger<RoleUsersController> logger, ITokenManager tokenManager, ISysUserRoleService userRoleService, ISysUsersService userService)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -54,14 +54,14 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult Get(string roleId)
+        public async Task<IActionResult> Get(string roleId)
         {
             if (string.IsNullOrEmpty(roleId))
             {
                 return toResponse(StatusCodeType.Error, "roleId 不能为空");
             }
 
-            var response = _userRoleService.GetRoleUsers(roleId).OrderBy(m => m.UserID);
+            var response =(await _userRoleService.GetRoleUsersAsync(roleId)).OrderBy(m => m.UserID);
 
             return toResponse(response);
         }
@@ -72,7 +72,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_ROLEUSERS_CREATE")]
-        public IActionResult Create([FromBody] RoleUsersCreateDto parm)
+        public async Task<IActionResult> Create([FromBody] RoleUsersCreateDto parm)
         {
             List<Sys_UserRole> relations = new List<Sys_UserRole>();
 
@@ -86,13 +86,13 @@ namespace Meiam.System.Hostd.Controllers.System
                 });
             }
 
-            var response = _userRoleService.Add(relations);
+            var response =await _userRoleService.AddAsync(relations);
 
 
             //更新登录会话记录
             foreach (var userId in parm.UserIds)
             {
-                _tokenManager.RefreshSession(userId);
+                await _tokenManager.RefreshSessionAsync(userId);
             }
 
             return toResponse(response);
@@ -104,16 +104,16 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_ROLEUSERS_DELETE")]
-        public IActionResult Delete([FromBody] RoleUsersDeleteDto parm)
+        public async Task<IActionResult> Delete([FromBody] RoleUsersDeleteDto parm)
         {
-            var response = _userRoleService.Delete(m => m.RoleID == parm.RoleId
+            var response =await _userRoleService.DeleteAsync(m => m.RoleID == parm.RoleId
                 && parm.UserIds.Contains(m.UserID)
            );
 
             //更新登录会话记录
             foreach (var userId in parm.UserIds)
             {
-                _tokenManager.RefreshSession(userId);
+                await _tokenManager.RefreshSessionAsync(userId);
             }
 
             return toResponse(response);
@@ -126,7 +126,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_ROLEUSERS_VIEW")]
-        public IActionResult GetExcludeUsers(string roleId)
+        public async Task<IActionResult> GetExcludeUsers(string roleId)
         {
             if (string.IsNullOrEmpty(roleId))
             {
@@ -134,10 +134,10 @@ namespace Meiam.System.Hostd.Controllers.System
             }
 
             // 取得该角色所有添加的用户
-            var userIds = _userRoleService.GetWhere(m => m.RoleID == roleId).Select(m => m.UserID);
+            var userIds =(await _userRoleService.GetWhereAsync(m => m.RoleID == roleId)).Select(m => m.UserID);
 
             // 获取未添加用户
-            var response = _userService.GetWhere(m => !userIds.Contains(m.UserID)).OrderBy(m => m.CreateTime);
+            var response =( await  _userService.GetWhereAsync(m => !userIds.Contains(m.UserID))).OrderBy(m => m.CreateTime);
 
             return toResponse(response);
         }

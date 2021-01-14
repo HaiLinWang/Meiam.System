@@ -28,7 +28,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 工厂定义接口
@@ -41,7 +41,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         private readonly ISysDataRelationService _dataRelationService;
 
 
-        public FactoryController(ILogger<FactoryController> logger, TokenManager tokenManager, IBaseFactoryService factoryService, ISysDataRelationService dataRelationService)
+        public FactoryController(ILogger<FactoryController> logger, ITokenManager tokenManager, IBaseFactoryService factoryService, ISysDataRelationService dataRelationService)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -56,9 +56,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization]
-        public IActionResult Query([FromBody] FactoryQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] FactoryQueryDto parm)
         {
-            var response = _factoryService.QueryFactoryPages(parm);
+            var response = await  _factoryService.QueryFactoryPagesAsync(parm);
             return toResponse(response);
         }
 
@@ -70,13 +70,13 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult Get(string id = null)
+        public async Task<IActionResult> Get(string id = null)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "工厂 Id 不能为空");
             }
-            return toResponse(_factoryService.GetFactory(id));
+            return toResponse(await  _factoryService.GetFactoryAsync(id));
         }
 
         /// <summary>
@@ -86,9 +86,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetAll(bool? enable = null)
+        public async Task<IActionResult> GetAll(bool? enable = null)
         {
-            return toResponse(_factoryService.GetAllFactory(enable));
+            return toResponse(await  _factoryService.GetAllFactoryAsync(enable));
         }
 
         /// <summary>
@@ -97,13 +97,13 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_FACTORY_CREATE")]
-        public IActionResult Create([FromBody] FactoryCreateDto parm)
+        public async Task<IActionResult> Create([FromBody] FactoryCreateDto parm)
         {
             try
             {
-                var factory = parm.Adapt<Base_Factory>().ToCreate(_tokenManager.GetSessionInfo());
+                var factory = parm.Adapt<Base_Factory>().ToCreate(await  _tokenManager.GetSessionInfoAsync());
 
-                if (_factoryService.Any(m => m.FactoryNo == parm.FactoryNo))
+                if (await  _factoryService.AnyAsync(m => m.FactoryNo == parm.FactoryNo))
                 {
                     return toResponse(StatusCodeType.Error, $"添加工厂编码 {parm.FactoryNo} 已存在，不能重复！");
                 }
@@ -111,10 +111,10 @@ namespace Meiam.System.Hostd.Controllers.Basic
                 //从 Dto 映射到 实体
                 _dataRelationService.BeginTran();
 
-                var response = _factoryService.Add(factory);
+                var response = await  _factoryService.AddAsync(factory);
 
                 //插入关系表
-                _dataRelationService.Add(new Sys_DataRelation
+              await  _dataRelationService.AddAsync(new Sys_DataRelation
                 {
                     ID = GetGUID,
                     Form = factory.ID,
@@ -139,9 +139,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_FACTORY_UPDATE")]
-        public IActionResult Update([FromBody] FactoryUpdateDto parm)
+        public async Task<IActionResult> Update([FromBody] FactoryUpdateDto parm)
         {
-            if (_factoryService.Any(m => m.FactoryNo == parm.FactoryNo && m.ID != parm.ID))
+            if (await  _factoryService.AnyAsync(m => m.FactoryNo == parm.FactoryNo && m.ID != parm.ID))
             {
                 return toResponse(StatusCodeType.Error, $"更新工厂编码 {parm.FactoryNo} 已存在，不能重复！");
             }
@@ -150,9 +150,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
             {
                 _dataRelationService.BeginTran();
 
-                var userSession = _tokenManager.GetSessionInfo();
+                var userSession = await  _tokenManager.GetSessionInfoAsync();
 
-                var response = _factoryService.Update(m => m.ID == parm.ID, m => new Base_Factory()
+                var response = await  _factoryService.UpdateAsync(m => m.ID == parm.ID, m => new Base_Factory()
                 {
                     FactoryNo = parm.FactoryNo,
                     FactoryName = parm.FactoryName,
@@ -164,10 +164,10 @@ namespace Meiam.System.Hostd.Controllers.Basic
                 });
 
                 //删除关系表
-                _dataRelationService.Delete(m => m.Form == parm.ID && m.Type == DataRelationType.Factory_To_Company.ToString());
+               await _dataRelationService.DeleteAsync(m => m.Form == parm.ID && m.Type == DataRelationType.Factory_To_Company.ToString());
 
                 //插入关系表
-                _dataRelationService.Add(new Sys_DataRelation
+              await  _dataRelationService.AddAsync(new Sys_DataRelation
                 {
                     ID = GetGUID,
                     Form = parm.ID,
@@ -192,14 +192,14 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_FACTORY_DELETE")]
-        public IActionResult Delete(string id)
+        public async Task<IActionResult> Delete(string id)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "删除工厂 Id 不能为空");
             }
 
-            if (_dataRelationService.Any(m => m.To == id))
+            if (await _dataRelationService.AnyAsync(m => m.To == id))
             {
                 return toResponse(StatusCodeType.Error, "该工厂已被关联，无法删除，若要请先删除关联");
             }
@@ -207,8 +207,8 @@ namespace Meiam.System.Hostd.Controllers.Basic
             try
             {
                 _dataRelationService.BeginTran();
-                _dataRelationService.Delete(m => m.Form == id && m.Type == DataRelationType.Factory_To_Company.ToString());
-                var response = _factoryService.Delete(id);
+             await   _dataRelationService.DeleteAsync(m => m.Form == id && m.Type == DataRelationType.Factory_To_Company.ToString());
+                var response = await  _factoryService.DeleteAsync(id);
                 _dataRelationService.CommitTran();
 
                 return toResponse(response);

@@ -31,7 +31,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 用户服务接口
@@ -43,7 +43,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly ISysUserRelationService _relationService;
 
-        public UserCenterController(ILogger<UserCenterController> logger, TokenManager tokenManager, ISysUsersService usersService, ISysUserRelationService relationService)
+        public UserCenterController(ILogger<UserCenterController> logger, ITokenManager tokenManager, ISysUsersService usersService, ISysUserRelationService relationService)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -57,16 +57,16 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization]
-        public IActionResult UpdatePassword([FromBody] UserCenterUpdatePasswordDto parm)
+        public async Task<IActionResult> UpdatePassword([FromBody] UserCenterUpdatePasswordDto parm)
         {
             if (Convert.ToBoolean(AppSettings.Configuration["AppSettings:Demo"]))
             {
                 toResponse(StatusCodeType.Error, "当前为演示模式 , 您无权修改任何数据");
             }
 
-            var userSession = _tokenManager.GetSessionInfo();
+            var userSession = await _tokenManager.GetSessionInfoAsync();
 
-            var userInfo = _usersService.GetId(userSession.UserID);
+            var userInfo =await _usersService.GetIdAsync(userSession.UserID);
 
             // 验证旧密码是否正确
             if (!PasswordUtil.ComparePasswords(userInfo.UserID, userInfo.Password, parm.CurrentPassword.Trim()))
@@ -75,13 +75,13 @@ namespace Meiam.System.Hostd.Controllers.System
             }
 
             // 更新用户密码
-            var response = _usersService.Update(m => m.UserID == userInfo.UserID, m => new Sys_Users()
+            var response =await _usersService.UpdateAsync(m => m.UserID == userInfo.UserID, m => new Sys_Users()
             {
                 Password = PasswordUtil.CreateDbPassword(userInfo.UserID, parm.ConfirmPassword.Trim())
             });
 
             // 删除登录会话记录
-            _tokenManager.RemoveAllSession(userInfo.UserID);
+            await _tokenManager.RemoveAllSessionAsync(userInfo.UserID);
 
             return toResponse(response);
         }
@@ -93,9 +93,9 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization]
-        public IActionResult Update([FromBody] UserCenterUpdateDto parm)
+        public async Task<IActionResult> Update([FromBody] UserCenterUpdateDto parm)
         {
-            var userSession = _tokenManager.GetSessionInfo();
+            var userSession = await _tokenManager.GetSessionInfoAsync();
 
             if (Convert.ToBoolean(AppSettings.Configuration["AppSettings:Demo"]))
             {
@@ -103,7 +103,7 @@ namespace Meiam.System.Hostd.Controllers.System
             }
 
             #region 更新用户信息
-            var response = _usersService.Update(m => m.UserID == userSession.UserID, m => new Sys_Users
+            var response =await _usersService.UpdateAsync(m => m.UserID == userSession.UserID, m => new Sys_Users
             {
                 NickName = parm.NickName,
                 Email = parm.Email,
@@ -119,7 +119,7 @@ namespace Meiam.System.Hostd.Controllers.System
 
             #region 更新登录会话记录
 
-            _tokenManager.RefreshSession(userSession.UserID);
+            await _tokenManager.RefreshSessionAsync(userSession.UserID);
 
             #endregion
 
@@ -132,7 +132,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization]
-        public IActionResult AvatarUpload([FromForm(Name = "file")] IFormFile file)
+        public async Task<IActionResult> AvatarUpload([FromForm(Name = "file")] IFormFile file)
         {
             try
             {
@@ -172,10 +172,10 @@ namespace Meiam.System.Hostd.Controllers.System
 
                 var avatarUrl = $"{AppSettings.Configuration["AvatarUpload:AvatarUrl"]}{filePath}{fileName}";
 
-                var userSession = _tokenManager.GetSessionInfo();
+                var userSession = await _tokenManager.GetSessionInfoAsync();
 
                 #region 更新用户信息
-                var response = _usersService.Update(m => m.UserID == userSession.UserID, m => new Sys_Users
+                var response =await _usersService.UpdateAsync(m => m.UserID == userSession.UserID, m => new Sys_Users
                 {
                     AvatarUrl = avatarUrl,
                     UpdateID = userSession.UserID,
@@ -186,7 +186,7 @@ namespace Meiam.System.Hostd.Controllers.System
 
                 #region 更新登录会话记录
 
-                _tokenManager.RefreshSession(userSession.UserID);
+                await _tokenManager.RefreshSessionAsync(userSession.UserID);
 
                 #endregion
 

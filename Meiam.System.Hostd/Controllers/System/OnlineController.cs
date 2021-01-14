@@ -24,7 +24,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 日志管理接口
@@ -36,7 +36,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly ISysOnlineService _onlineService;
 
-        public OnlineController(ILogger<OnlineController> logger, TokenManager tokenManager, ISysOnlineService onlineService)
+        public OnlineController(ILogger<OnlineController> logger, ITokenManager tokenManager, ISysOnlineService onlineService)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -50,14 +50,14 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_ONLINE_VIEW")]
-        public IActionResult Query([FromBody] OnlineQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] OnlineQueryDto parm)
         {
             //开始拼装查询条件
             var predicate = Expressionable.Create<Sys_Online>();
 
             predicate = predicate.AndIF(!string.IsNullOrEmpty(parm.QueryText), m => m.UserID.Contains(parm.QueryText) || m.SessionID.Contains(parm.QueryText) || m.IPAddress.Contains(parm.QueryText));
 
-            var response = _onlineService.GetPages(predicate.ToExpression(), parm);
+            var response =await _onlineService.GetPagesAsync(predicate.ToExpression(), parm);
 
             return toResponse(response);
         }
@@ -68,11 +68,11 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_ONLINE_DELETE")]
-        public IActionResult Delete([FromBody] OnlineDeleteDto parm)
+        public async Task<IActionResult> Delete([FromBody] OnlineDeleteDto parm)
         {
             foreach(var session in parm.SessionIds)
             {
-                _tokenManager.RemoveSession(session);
+                await _tokenManager.RemoveSessionAsync(session);
             }
 
             return toResponse(StatusCodeType.Success);

@@ -18,7 +18,7 @@ namespace Meiam.System.Interfaces
     public class BaseFactoryService : BaseService<Base_Factory>, IBaseFactoryService
     {
 
-        #region CustomInterface 
+        #region CustomInterface 同步
         /// <summary>
         /// 查询工厂（分页）
         /// </summary>
@@ -117,6 +117,106 @@ namespace Meiam.System.Interfaces
             return source.ToList();
         }
         #endregion
+        
+        
+        #region CustomInterface 异步
+        /// <summary>
+        /// 查询工厂（分页）
+        /// </summary>
+        /// <param name="parm"></param>
+        /// <param name="Async"></param>
+        /// <returns></returns>
+        public async Task<PagedInfo<FactoryVM>> QueryFactoryPagesAsync(FactoryQueryDto parm)
+        {
+            var source = Db.Queryable<Base_Factory, Sys_DataRelation, Base_Company>((a, b, c) => new object[] {
+                JoinType.Inner,a.ID == b.Form,
+                JoinType.Inner,b.To == c.ID,
+            }).WhereIF(!string.IsNullOrEmpty(parm.QueryText), (a, b, c) => a.FactoryName.Contains(parm.QueryText) || a.FactoryNo.Contains(parm.QueryText))
+            .Select((a, b, c) => new FactoryVM
+            {
+                ID = a.ID,
+                FactoryNo = a.FactoryNo,
+                FactoryName = a.FactoryName,
+                Remark = a.Remark,
+                Enable = a.Enable,
+                CompanyUID = c.ID,
+                CompanyNo = c.CompanyNo,
+                CompanyName = c.CompanyName,
+                CreateTime = a.CreateTime,
+                UpdateTime = a.UpdateTime,
+                CreateID = a.CreateID,
+                CreateName = a.CreateName,
+                UpdateID = a.UpdateID,
+                UpdateName = a.UpdateName
+            })
+            .MergeTable();
 
+            return await source.ToPageAsync(new PageParm { PageIndex = parm.PageIndex, PageSize = parm.PageSize, OrderBy = parm.OrderBy, Sort = parm.Sort });
+        }
+
+        /// <summary>
+        /// 根据ID查询工厂
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="Async"></param>
+        /// <returns></returns>
+        public async Task< FactoryVM> GetFactoryAsync(string id)
+        {
+            var source = Db.Queryable<Base_Factory, Sys_DataRelation, Base_Company>((a, b, c) => new object[] {
+                JoinType.Inner,a.ID == b.Form,
+                JoinType.Inner,b.To == c.ID,
+            }).Where((a, b, c) => a.ID == id)
+            .Select((a, b, c) => new FactoryVM
+            {
+                ID = a.ID,
+                FactoryNo = a.FactoryNo,
+                FactoryName = a.FactoryName,
+                Remark = a.Remark,
+                Enable = a.Enable,
+                CompanyUID = c.ID,
+                CompanyNo = c.CompanyNo,
+                CompanyName = c.CompanyName,
+                CreateTime = a.CreateTime,
+                UpdateTime = a.UpdateTime,
+                CreateID = a.CreateID,
+                CreateName = a.CreateName,
+                UpdateID = a.UpdateID,
+                UpdateName = a.UpdateName
+            }).MergeTable();
+
+            return await source.FirstAsync();
+        }
+
+        /// <summary>
+        /// 查询所有工厂
+        /// </summary>
+        public async Task< List<FactoryVM>> GetAllFactoryAsync(bool? enable = null)
+        {
+            var source = Db.Queryable<Base_Factory, Sys_DataRelation, Base_Company>((a, b, c) => new object[] {
+                JoinType.Inner,a.ID == b.Form,
+                JoinType.Inner,b.To == c.ID,
+            })
+            .WhereIF(enable != null, (a, b, c) => a.Enable == enable)
+            .Select((a, b, c) => new FactoryVM
+            {
+                ID = a.ID,
+                FactoryNo = a.FactoryNo,
+                FactoryName = a.FactoryName,
+                Remark = a.Remark,
+                Enable = a.Enable,
+                CompanyUID = c.ID,
+                CompanyNo = c.CompanyNo,
+                CompanyName = c.CompanyName,
+                CreateTime = a.CreateTime,
+                UpdateTime = a.UpdateTime,
+                CreateID = a.CreateID,
+                CreateName = a.CreateName,
+                UpdateID = a.UpdateID,
+                UpdateName = a.UpdateName
+            }).MergeTable().OrderBy(m => m.FactoryNo);
+
+            return await source.ToListAsync();
+        }
+        #endregion
     }
 }

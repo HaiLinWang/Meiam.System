@@ -17,7 +17,7 @@ namespace Meiam.System.Interfaces
     public interface ISysUsersService : IBaseService<Sys_Users>
     {
 
-        #region CustomInterface 
+        #region CustomInterface  同步
 
         /// <summary>
         /// 获取用户权限标识
@@ -34,6 +34,22 @@ namespace Meiam.System.Interfaces
         List<Sys_UserRelation> GetUserRelation(string userId);
 
         #endregion
+        #region CustomInterface  异步
 
+        /// <summary>
+        /// 获取用户权限标识
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        Task<List<string>> GetUserPowersAsync(string userId);
+
+        /// <summary>
+        /// 获取用户拥有的数据权限列表
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        Task<List<Sys_UserRelation>> GetUserRelationAsync(string userId);
+
+        #endregion
     }
 }

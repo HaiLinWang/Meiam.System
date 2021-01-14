@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Threading.Tasks;
 
 namespace Meiam.System.Hostd.Controllers.System
 {
@@ -23,7 +24,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 日志管理接口
@@ -40,7 +41,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly ISysUserRelationService _userRelationService;
 
-        public AuthController(TokenManager tokenManager, ISysUsersService userService, ILogger<AuthController> logger,
+        public AuthController(ITokenManager tokenManager, ISysUsersService userService, ILogger<AuthController> logger,
             ISysUserRelationService userRelationService)
         {
             _tokenManager = tokenManager;
@@ -54,13 +55,13 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public IActionResult Code()
+        public async Task<IActionResult> Code()
         {
             var code = CaptchaUtil.GetRandomEnDigitalText();
 
             var verifyCode = CaptchaUtil.GenerateCaptchaImage(code);
 
-            RedisServer.Cache.Set($"Captcha:{verifyCode.CaptchaGUID}", verifyCode.CaptchaCode, 1800);
+           await RedisServer.Cache.SetAsync($"Captcha:{verifyCode.CaptchaGUID}", verifyCode.CaptchaCode, 1800);
 
             JObject result = new JObject();
 
@@ -75,7 +76,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public IActionResult Login([FromBody] LoginDto parm)
+        public async Task<IActionResult> Login([FromBody] LoginDto parm)
         {
 
             //var captchaCode = RedisServer.Cache.Get($"Captcha:{parm.Uuid}");
@@ -87,7 +88,7 @@ namespace Meiam.System.Hostd.Controllers.System
             //    return toResponse(StatusCodeType.Error, "输入验证码无效");
             //}
 
-            var userInfo = _userService.GetFirst(o => o.UserID == parm.UserName.Trim());
+            var userInfo = await  _userService.GetFirstAsync(o => o.UserID == parm.UserName.Trim());
 
             if (userInfo == null)
             {
@@ -104,7 +105,7 @@ namespace Meiam.System.Hostd.Controllers.System
                 return toResponse(StatusCodeType.Error, "用户未启用，请联系管理员！");
             }
 
-            var userToken = _tokenManager.CreateSession(userInfo, SourceType.Web, Convert.ToInt32(AppSettings.Configuration["AppSettings:WebSessionExpire"]));
+            var userToken = await _tokenManager.CreateSessionAsync(userInfo, SourceType.Web, Convert.ToInt32(AppSettings.Configuration["AppSettings:WebSessionExpire"]));
 
             return toResponse(userToken);
         }
@@ -114,9 +115,9 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public IActionResult LoginMiniProgram([FromBody] LoginMiniProgramDto parm)
+        public async Task<IActionResult> LoginMiniProgram([FromBody] LoginMiniProgramDto parm)
         {
-            var userInfo = _userService.GetFirst(o => o.UserID == parm.UserName.Trim());
+            var userInfo = await  _userService.GetFirstAsync(o => o.UserID == parm.UserName.Trim());
 
             if (userInfo == null)
             {
@@ -133,7 +134,7 @@ namespace Meiam.System.Hostd.Controllers.System
                 return toResponse(StatusCodeType.Error, "用户未启用，请联系管理员！");
             }
 
-            var userToken = _tokenManager.CreateSession(userInfo, SourceType.MiniProgram, Convert.ToInt32(AppSettings.Configuration["AppSettings:MiniProgramSessionExpire"]));
+            var userToken = await _tokenManager.CreateSessionAsync(userInfo, SourceType.MiniProgram, Convert.ToInt32(AppSettings.Configuration["AppSettings:MiniProgramSessionExpire"]));
 
             return toResponse(userToken);
         }
@@ -143,9 +144,9 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        public IActionResult LogOut()
+        public async Task<IActionResult> LogOut()
         {
-            _tokenManager.RemoveSession(_tokenManager.GetSysToken);
+           await _tokenManager.RemoveSessionAsync( _tokenManager.GetSys_Token());
 
             return toResponse(StatusCodeType.Success);
         }
@@ -156,9 +157,9 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetUserInfo()
+        public async Task<IActionResult> GetUserInfo()
         {
-            return toResponse(_tokenManager.GetSessionInfo());
+            return toResponse(await _tokenManager.GetSessionInfoAsync());
         }
 
         /// <summary>
@@ -167,9 +168,9 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetUserCompany()
+        public async Task<IActionResult> GetUserCompany()
         {
-            return toResponse(_userRelationService.GetUserCompany(_tokenManager.GetSessionInfo(), true));
+            return toResponse(await  _userRelationService.GetUserCompanyAsync(await _tokenManager.GetSessionInfoAsync(), true));
         }
 
         /// <summary>
@@ -178,9 +179,9 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetUserFactory()
+        public async Task<IActionResult> GetUserFactory()
         {
-            return toResponse(_userRelationService.GetUserFactory(_tokenManager.GetSessionInfo(), true));
+            return toResponse(await _userRelationService.GetUserFactoryAsync(await _tokenManager.GetSessionInfoAsync(), true));
         }
 
         /// <summary>
@@ -189,9 +190,9 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetUserWorkShop()
+        public async Task<IActionResult> GetUserWorkShop()
         {
-            return toResponse(_userRelationService.GetUserWorkShop(_tokenManager.GetSessionInfo(), true));
+            return toResponse(await _userRelationService.GetUserWorkShopAsync(await _tokenManager.GetSessionInfoAsync(), true));
         }
 
         /// <summary>
@@ -200,9 +201,9 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetUserProductProcess()
+        public async Task<IActionResult> GetUserProductProcess()
         {
-            return toResponse(_userRelationService.GetUserProductProcess(_tokenManager.GetSessionInfo(), true));
+            return toResponse(await _userRelationService.GetUserProductProcessAsync(await _tokenManager.GetSessionInfoAsync(), true));
         }
 
         /// <summary>
@@ -211,9 +212,9 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetUserProductLine()
+        public async Task<IActionResult> GetUserProductLine()
         {
-            return toResponse(_userRelationService.GetUserProductLine(_tokenManager.GetSessionInfo(), true));
+            return toResponse(await _userRelationService.GetUserProductLineAsync(await _tokenManager.GetSessionInfoAsync(), true));
         }
     }
 }

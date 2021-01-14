@@ -62,6 +62,50 @@ namespace Meiam.System.Interfaces
         bool Any(string Id, string equipNo, string lineId);
 
         #endregion
+        #region CustomInterface 
+        /// <summary>
+        /// 查询设备（分页）
+        /// </summary>
+        /// <param name="parm"></param>
+        /// <returns></returns>
+      Task<  PagedInfo<EquipmentVM>> QueryEquipPagesAsync(EquipmentQueryDto parm);
 
+        /// <summary>
+        /// 根据ID查询设备
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+         Task<EquipmentVM> GetEquipAsync(string id);
+
+        /// <summary>
+        /// 根据编码查询设备
+        /// </summary>
+        /// <param name="equipNo"></param>
+        /// <returns></returns>
+         Task<EquipmentVM> GetEquipByNoAsync(string equipNo);
+
+        /// <summary>
+        /// 根据产线编码查询设备定义
+        /// </summary>
+        /// <param name="lineNo"></param>
+        /// <param name="enable"></param>
+        /// <returns></returns>
+         Task<List<EquipmentVM>> GetEquipByLineAsync(string lineNo, bool? enable = null);
+
+        /// <summary>
+        /// 查询所有设备
+        /// </summary>
+        /// <returns></returns>
+         Task<List<EquipmentVM>> GetAllEquipAsync(bool? enable = null);
+
+        /// <summary>
+        /// 查询同生产线下是否存在相同设备编码
+        /// </summary>
+        /// <param name="equipNo"></param>
+        /// <param name="lineId"></param>
+        /// <returns></returns>
+          Task<bool> AnyAsync(string Id, string equipNo, string lineId);
+
+        #endregion
     }
 }

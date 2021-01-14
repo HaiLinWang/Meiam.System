@@ -24,7 +24,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
         /// <summary>
         /// 日志管理接口
         /// </summary>
@@ -35,7 +35,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly ISysLogsService _logsService;
 
-        public LogsController(ILogger<LogsController> logger, TokenManager tokenManager,  ISysLogsService logsService)
+        public LogsController(ILogger<LogsController> logger, ITokenManager tokenManager,  ISysLogsService logsService)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -49,7 +49,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_LOGS_VIEW")]
-        public IActionResult Query([FromBody] LogsQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] LogsQueryDto parm)
         {
             //开始拼装查询条件
             var predicate = Expressionable.Create<Sys_Logs>();
@@ -58,7 +58,7 @@ namespace Meiam.System.Hostd.Controllers.System
             predicate = predicate.AndIF(!string.IsNullOrEmpty(parm.Level), m => m.Level == parm.Level);
             predicate = predicate.AndIF(!string.IsNullOrEmpty(parm.QueryText), m => m.Message.Contains(parm.QueryText) || m.Url.Contains(parm.QueryText)  || m.IPAddress.Contains(parm.QueryText));
 
-            var response = _logsService.GetPages(predicate.ToExpression(), parm);
+            var response =await _logsService.GetPagesAsync(predicate.ToExpression(), parm);
 
             return toResponse(response);
         }

@@ -47,6 +47,35 @@ namespace Meiam.System.Interfaces
         bool Any(string Id, string lineNo, string processId);
 
         #endregion
+        #region CustomInterface 
+        /// <summary>
+        /// 查询产线（分页）
+        /// </summary>
+        /// <param name="parm"></param>
+        /// <returns></returns>
+       Task< PagedInfo<ProductLineVM>> QueryLinePagesAsync(ProductLineQueryDto parm);
 
+        /// <summary>
+        /// 根据ID查询产线
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+       Task<ProductLineVM> GetLineAsync(string id);
+
+        /// <summary>
+        /// 查询所有产线
+        /// </summary>
+        /// <returns></returns>
+      Task<List<ProductLineVM>> GetAllLineAsync(bool? enable = null);
+
+        /// <summary>
+        /// 查询同工序下是否存在相同生产线编码
+        /// </summary>
+        /// <param name="lineNo"></param>
+        /// <param name="processId"></param>
+        /// <returns></returns>
+      Task<bool> AnyAsync(string Id, string lineNo, string processId);
+
+        #endregion
     }
 }

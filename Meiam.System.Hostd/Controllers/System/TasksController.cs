@@ -31,7 +31,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
         /// <summary>
         /// 用户权限接口
         /// </summary>
@@ -42,7 +42,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly ITaskSchedulerServer _schedulerServer;
 
-        public TasksController(ILogger<TasksController> logger, TokenManager tokenManager, ISysTasksQzService tasksQzService, ITaskSchedulerServer schedulerServer)
+        public TasksController(ILogger<TasksController> logger, ITokenManager tokenManager, ISysTasksQzService tasksQzService, ITaskSchedulerServer schedulerServer)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -56,14 +56,14 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_TASKS_VIEW")]
-        public IActionResult Query([FromBody] TasksQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] TasksQueryDto parm)
         {
             //开始拼装查询条件
             var predicate = Expressionable.Create<Sys_TasksQz>();
 
             predicate = predicate.AndIF(!string.IsNullOrEmpty(parm.QueryText), m => m.Name.Contains(parm.QueryText) || m.JobGroup.Contains(parm.QueryText) || m.AssemblyName.Contains(parm.QueryText));
 
-            var response = _tasksQzService.GetPages(predicate.ToExpression(), parm);
+            var response = await  _tasksQzService.GetPagesAsync(predicate.ToExpression(), parm);
 
             return toResponse(response);
         }
@@ -75,13 +75,13 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_TASKS_VIEW")]
-        public IActionResult Get(string id)
+        public async Task<IActionResult> Get(string id)
         {
             if (!string.IsNullOrEmpty(id))
             {
-                return toResponse(_tasksQzService.GetId(id));
+                return toResponse(await  _tasksQzService.GetIdAsync(id));
             }
-            return toResponse(_tasksQzService.GetAll());
+            return toResponse(await  _tasksQzService.GetAllAsync());
         }
 
         /// <summary>
@@ -90,10 +90,10 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_TASKS_CREATE")]
-        public IActionResult Create([FromBody] TasksCreateDto parm)
+        public async Task<IActionResult> Create([FromBody] TasksCreateDto parm)
         {
             //判断是否已经存在
-            if (_tasksQzService.Any(m => m.Name == parm.Name))
+            if (await  _tasksQzService.AnyAsync(m => m.Name == parm.Name))
             {
                 return toResponse(StatusCodeType.Error, $"添加 {parm.Name} 失败，该用任务存在，不能重复！");
             }
@@ -120,10 +120,10 @@ namespace Meiam.System.Hostd.Controllers.System
             }
 
             //从 Dto 映射到 实体
-            var tasksQz = parm.Adapt<Sys_TasksQz>().ToCreate(_tokenManager.GetSessionInfo());
+            var tasksQz = parm.Adapt<Sys_TasksQz>().ToCreate(await _tokenManager.GetSessionInfoAsync());
 
 
-            return toResponse(_tasksQzService.Add(tasksQz));
+            return toResponse(await  _tasksQzService.AddAsync(tasksQz));
         }
 
 
@@ -133,10 +133,10 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_TASKS_UPDATE")]
-        public IActionResult Update([FromBody] TasksUpdateDto parm)
+        public async Task<IActionResult> Update([FromBody] TasksUpdateDto parm)
         {
             //判断是否已经存在
-            if (_tasksQzService.Any(m => m.Name == parm.Name && m.ID != parm.ID))
+            if (await   _tasksQzService.AnyAsync(m => m.Name == parm.Name && m.ID != parm.ID))
             {
                 return toResponse(StatusCodeType.Error, $"更新 {parm.Name} 失败，该用任务存在，不能重复！");
             }
@@ -162,7 +162,7 @@ namespace Meiam.System.Hostd.Controllers.System
                 }
             }
 
-            var tasksQz = _tasksQzService.GetFirst(m => m.ID == parm.ID);
+            var tasksQz = await   _tasksQzService.GetFirstAsync(m => m.ID == parm.ID);
 
             if (tasksQz.IsStart)
             {
@@ -173,7 +173,7 @@ namespace Meiam.System.Hostd.Controllers.System
 
             #region 更新任务信息
 
-            var response = _tasksQzService.Update(m => m.ID == parm.ID, m => new Sys_TasksQz
+            var response = await  _tasksQzService.UpdateAsync(m => m.ID == parm.ID, m => new Sys_TasksQz
             {
                 Name = parm.Name,
                 JobGroup = parm.JobGroup,
@@ -209,17 +209,17 @@ namespace Meiam.System.Hostd.Controllers.System
                 return toResponse(StatusCodeType.Error, "删除任务 Id 不能为空");
             }
 
-            if (!_tasksQzService.Any(m => m.ID == id))
+            if (!await  _tasksQzService.AnyAsync(m => m.ID == id))
             {
                 return toResponse(StatusCodeType.Error, "任务不存在");
             }
 
-            var tasksQz = _tasksQzService.GetFirst(m => m.ID == id);
+            var tasksQz = await  _tasksQzService.GetFirstAsync(m => m.ID == id);
             var taskResult = await _schedulerServer.DeleteTaskScheduleAsync(tasksQz);
 
             if (taskResult.StatusCode == 200)
             {
-                _tasksQzService.Delete(id);
+                await  _tasksQzService.DeleteAsync(id);
             }
             return new JsonResult(taskResult);
         }
@@ -237,18 +237,18 @@ namespace Meiam.System.Hostd.Controllers.System
                 return toResponse(StatusCodeType.Error, "启动任务 Id 不能为空");
             }
 
-            if (!_tasksQzService.Any(m => m.ID == id))
+            if (!await  _tasksQzService.AnyAsync(m => m.ID == id))
             {
                 return toResponse(StatusCodeType.Error, "任务不存在");
             }
 
-            var tasksQz = _tasksQzService.GetFirst(m => m.ID == id);
+            var tasksQz = await  _tasksQzService.GetFirstAsync(m => m.ID == id);
             var taskResult = await _schedulerServer.AddTaskScheduleAsync(tasksQz);
 
             if (taskResult.StatusCode == 200)
             {
                 tasksQz.IsStart = true;
-                _tasksQzService.Update(tasksQz);
+                await  _tasksQzService.UpdateAsync(tasksQz);
             }
 
             return new JsonResult(taskResult);
@@ -267,18 +267,18 @@ namespace Meiam.System.Hostd.Controllers.System
                 return toResponse(StatusCodeType.Error, "删除任务 Id 不能为空");
             }
 
-            if (!_tasksQzService.Any(m => m.ID == id))
+            if (!await  _tasksQzService.AnyAsync(m => m.ID == id))
             {
                 return toResponse(StatusCodeType.Error, "任务不存在");
             }
 
-            var tasksQz = _tasksQzService.GetFirst(m => m.ID == id);
+            var tasksQz = await  _tasksQzService.GetFirstAsync(m => m.ID == id);
             var taskResult = await _schedulerServer.DeleteTaskScheduleAsync(tasksQz);
 
             if (taskResult.StatusCode == 200)
             {
                 tasksQz.IsStart = false;
-                _tasksQzService.Update(tasksQz);
+                await  _tasksQzService.UpdateAsync(tasksQz);
             }
 
             return new JsonResult(taskResult);

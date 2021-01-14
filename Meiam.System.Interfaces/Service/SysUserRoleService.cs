@@ -18,7 +18,7 @@ namespace Meiam.System.Interfaces
     public class SysUserRoleService : BaseService<Sys_UserRole>, ISysUserRoleService
     {
 
-        #region CustomInterface 
+        #region CustomInterface  
         /// <summary>
         /// 获取具有角色的用户列表
         /// </summary>
@@ -30,6 +30,14 @@ namespace Meiam.System.Interfaces
                 ((a, b) => new object[] { JoinType.Inner, a.UserID == b.UserID })
                 .Where((a, b) => a.RoleID == roleId)
                 .Select((a, b) => b).ToList();
+        }
+
+        public async Task<List<Sys_Users>> GetRoleUsersAsync(string roleId)
+        {
+            return await Db.Queryable<Sys_UserRole, Sys_Users>
+               ((a, b) => new object[] { JoinType.Inner, a.UserID == b.UserID })
+               .Where((a, b) => a.RoleID == roleId)
+               .Select((a, b) => b).ToListAsync();
         }
         #endregion
 

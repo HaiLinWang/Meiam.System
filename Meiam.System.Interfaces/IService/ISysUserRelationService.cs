@@ -17,7 +17,7 @@ namespace Meiam.System.Interfaces
     public interface ISysUserRelationService : IBaseService<Sys_UserRelation>
     {
 
-        #region CustomInterface 
+        #region CustomInterface 同步
         /// <summary>
         /// 获取用户拥有公司
         /// </summary>
@@ -62,6 +62,52 @@ namespace Meiam.System.Interfaces
         /// <param name="cacheSecond"></param>
         /// <returns></returns>
         List<Base_ProductLine> GetUserProductLine(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600);
+        #endregion
+        #region CustomInterface  异步
+        /// <summary>
+        /// 获取用户拥有公司
+        /// </summary>
+        /// <param name="userSession"></param>
+        /// <param name="useCache"></param>
+        /// <param name="cacheSecond"></param>
+        /// <returns></returns>
+       Task< List<Base_Company>> GetUserCompanyAsync(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600);
+
+        /// <summary>
+        /// 获取用户拥有工厂
+        /// </summary>
+        /// <param name="userSession"></param>
+        /// <param name="useCache"></param>
+        /// <param name="cacheSecond"></param>
+        /// <returns></returns>
+        Task<List<Base_Factory>> GetUserFactoryAsync(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600);
+
+        /// <summary>
+        /// 获取用户拥有车间
+        /// </summary>
+        /// <param name="userSession"></param>
+        /// <param name="useCache"></param>
+        /// <param name="cacheSecond"></param>
+        /// <returns></returns>
+        Task<List<Base_WorkShop>> GetUserWorkShopAsync(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600);
+
+        /// <summary>
+        /// 获取用户拥有工序
+        /// </summary>
+        /// <param name="userSession"></param>
+        /// <param name="useCache"></param>
+        /// <param name="cacheSecond"></param>
+        /// <returns></returns>
+        Task<List<Base_ProductProcess>> GetUserProductProcessAsync(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600);
+
+        /// <summary>
+        /// 获取用户拥有生产线
+        /// </summary>
+        /// <param name="userSession"></param>
+        /// <param name="useCache"></param>
+        /// <param name="cacheSecond"></param>
+        /// <returns></returns>
+        Task<List<Base_ProductLine>> GetUserProductLineAsync(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600);
         #endregion
 
     }

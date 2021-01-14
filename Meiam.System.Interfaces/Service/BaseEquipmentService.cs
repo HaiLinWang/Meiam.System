@@ -18,7 +18,7 @@ namespace Meiam.System.Interfaces
     public class BaseEquipmentService : BaseService<Base_Equipment>, IBaseEquipmentService
     {
 
-        #region CustomInterface 
+        #region CustomInterface  同步
         /// <summary>
         /// 查询设备（分页）
         /// </summary>
@@ -270,6 +270,261 @@ namespace Meiam.System.Interfaces
                 JoinType.Inner,a.ID == b.Form
             })
             .Any((a, b) => a.ID != Id && a.EquipNo == equipNo && b.To == lineId && b.Type == DataRelationType.Equipment_To_Line.ToString());
+        }
+        #endregion
+
+        #region CustomInterface  异步
+        /// <summary>
+        /// 查询设备（分页）
+        /// </summary>
+        /// <param name="parm"></param>
+        /// <returns></returns>
+         public async Task< PagedInfo<EquipmentVM>> QueryEquipPagesAsync(EquipmentQueryDto parm)
+        {
+            var source = Db.Queryable<Base_Equipment, Sys_DataRelation, Base_ProductLine, Sys_DataRelation, Base_ProductProcess, Sys_DataRelation, Base_WorkShop, Sys_DataRelation, Base_Factory>((a, b, c, d, e, f, g, h, j) => new object[] {
+                JoinType.Inner,a.ID == b.Form,
+                JoinType.Inner,b.To == c.ID,
+                JoinType.Inner,c.ID == d.Form,
+                JoinType.Inner,d.To == e.ID,
+                JoinType.Inner,e.ID == f.Form,
+                JoinType.Inner,f.To == g.ID,
+                JoinType.Inner,g.ID == h.Form,
+                JoinType.Inner,h.To == j.ID,
+            })
+            .WhereIF(!string.IsNullOrEmpty(parm.QueryText), (a, b, c, d, e, f, g, h, j) => a.EquipNo.Contains(parm.QueryText) || a.EquipName.Contains(parm.QueryText))
+            .Select((a, b, c, d, e, f, g, h, j) => new EquipmentVM
+            {
+                ID = a.ID,
+                EquipNo = a.EquipNo,
+                EquipName = a.EquipName,
+                Remark = a.Remark,
+                Enable = a.Enable,
+                LineUID = c.ID,
+                LineNo = c.LineNo,
+                LineName = c.LineName,
+                ProcessUID = e.ID,
+                ProcessNo = e.ProcessNo,
+                ProcessName = e.ProcessName,
+                WorkShopUID = g.ID,
+                WorkShopNo = g.WorkShopNo,
+                WorkShopName = g.WorkShopName,
+                FactoryUID = j.ID,
+                FactoryNo = j.FactoryNo,
+                FactoryName = j.FactoryName,
+                CreateTime = a.CreateTime,
+                UpdateTime = a.UpdateTime,
+                CreateID = a.CreateID,
+                CreateName = a.CreateName,
+                UpdateID = a.UpdateID,
+                UpdateName = a.UpdateName
+            })
+            .MergeTable();
+
+            return await source.ToPageAsync(new PageParm { PageIndex = parm.PageIndex, PageSize = parm.PageSize, OrderBy = parm.OrderBy, Sort = parm.Sort });
+        }
+
+        /// <summary>
+        /// 根据ID查询设备
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+         public async Task< EquipmentVM> GetEquipAsync(string id)
+        {
+            var source = Db.Queryable<Base_Equipment, Sys_DataRelation, Base_ProductLine, Sys_DataRelation, Base_ProductProcess, Sys_DataRelation, Base_WorkShop, Sys_DataRelation, Base_Factory>((a, b, c, d, e, f, g, h, j) => new object[] {
+                JoinType.Inner,a.ID == b.Form,
+                JoinType.Inner,b.To == c.ID,
+                JoinType.Inner,c.ID == d.Form,
+                JoinType.Inner,d.To == e.ID,
+                JoinType.Inner,e.ID == f.Form,
+                JoinType.Inner,f.To == g.ID,
+                JoinType.Inner,g.ID == h.Form,
+                JoinType.Inner,h.To == j.ID,
+            }).Where((a, b, c, d, e, f, g, h, j) => a.ID == id)
+            .Select((a, b, c, d, e, f, g, h, j) => new EquipmentVM
+            {
+                ID = a.ID,
+                EquipNo = a.EquipNo,
+                EquipName = a.EquipName,
+                Remark = a.Remark,
+                Enable = a.Enable,
+                LineUID = c.ID,
+                LineNo = c.LineNo,
+                LineName = c.LineName,
+                ProcessUID = e.ID,
+                ProcessNo = e.ProcessNo,
+                ProcessName = e.ProcessName,
+                WorkShopUID = g.ID,
+                WorkShopNo = g.WorkShopNo,
+                WorkShopName = g.WorkShopName,
+                FactoryUID = j.ID,
+                FactoryNo = j.FactoryNo,
+                FactoryName = j.FactoryName,
+                CreateTime = a.CreateTime,
+                UpdateTime = a.UpdateTime,
+                CreateID = a.CreateID,
+                CreateName = a.CreateName,
+                UpdateID = a.UpdateID,
+                UpdateName = a.UpdateName
+            }).MergeTable();
+
+            return await source.FirstAsync();
+        }
+
+        /// <summary>
+        /// 根据编码查询设备
+        /// </summary>
+        /// <param name="EquipNo"></param>
+        /// <returns></returns>
+         public async Task< EquipmentVM> GetEquipByNoAsync(string equipNo)
+        {
+            var source = Db.Queryable<Base_Equipment, Sys_DataRelation, Base_ProductLine, Sys_DataRelation, Base_ProductProcess, Sys_DataRelation, Base_WorkShop, Sys_DataRelation, Base_Factory>((a, b, c, d, e, f, g, h, j) => new object[] {
+                JoinType.Inner,a.ID == b.Form,
+                JoinType.Inner,b.To == c.ID,
+                JoinType.Inner,c.ID == d.Form,
+                JoinType.Inner,d.To == e.ID,
+                JoinType.Inner,e.ID == f.Form,
+                JoinType.Inner,f.To == g.ID,
+                JoinType.Inner,g.ID == h.Form,
+                JoinType.Inner,h.To == j.ID,
+            }).Where((a, b, c, d, e, f, g, h, j) => a.EquipNo == equipNo)
+            .Select((a, b, c, d, e, f, g, h, j) => new EquipmentVM
+            {
+                ID = a.ID,
+                EquipNo = a.EquipNo,
+                EquipName = a.EquipName,
+                Remark = a.Remark,
+                Enable = a.Enable,
+                LineUID = c.ID,
+                LineNo = c.LineNo,
+                LineName = c.LineName,
+                ProcessUID = e.ID,
+                ProcessNo = e.ProcessNo,
+                ProcessName = e.ProcessName,
+                WorkShopUID = g.ID,
+                WorkShopNo = g.WorkShopNo,
+                WorkShopName = g.WorkShopName,
+                FactoryUID = j.ID,
+                FactoryNo = j.FactoryNo,
+                FactoryName = j.FactoryName,
+                CreateTime = a.CreateTime,
+                UpdateTime = a.UpdateTime,
+                CreateID = a.CreateID,
+                CreateName = a.CreateName,
+                UpdateID = a.UpdateID,
+                UpdateName = a.UpdateName
+            }).MergeTable();
+
+            return await source.FirstAsync();
+        }
+
+        /// <summary>
+        /// 根据产线编码查询设备定义
+        /// </summary>
+        /// <param name="lineNo"></param>
+        /// <param name="enable"></param>
+        /// <returns></returns>
+         public async Task< List<EquipmentVM>> GetEquipByLineAsync(string lineNo, bool? enable = null)
+        {
+            var source = Db.Queryable<Base_Equipment, Sys_DataRelation, Base_ProductLine, Sys_DataRelation, Base_ProductProcess, Sys_DataRelation, Base_WorkShop, Sys_DataRelation, Base_Factory>((a, b, c, d, e, f, g, h, j) => new object[] {
+                JoinType.Inner,a.ID == b.Form,
+                JoinType.Inner,b.To == c.ID,
+                JoinType.Inner,c.ID == d.Form,
+                JoinType.Inner,d.To == e.ID,
+                JoinType.Inner,e.ID == f.Form,
+                JoinType.Inner,f.To == g.ID,
+                JoinType.Inner,g.ID == h.Form,
+                JoinType.Inner,h.To == j.ID,
+            }).Where((a, b, c, d, e, f, g, h, j) => c.LineNo == lineNo)
+            .WhereIF(enable != null, (a, b, c, d, e, f, g, h, j) => a.Enable == enable)
+            .Select((a, b, c, d, e, f, g, h, j) => new EquipmentVM
+            {
+                ID = a.ID,
+                EquipNo = a.EquipNo,
+                EquipName = a.EquipName,
+                Remark = a.Remark,
+                Enable = a.Enable,
+                LineUID = c.ID,
+                LineNo = c.LineNo,
+                LineName = c.LineName,
+                ProcessUID = e.ID,
+                ProcessNo = e.ProcessNo,
+                ProcessName = e.ProcessName,
+                WorkShopUID = g.ID,
+                WorkShopNo = g.WorkShopNo,
+                WorkShopName = g.WorkShopName,
+                FactoryUID = j.ID,
+                FactoryNo = j.FactoryNo,
+                FactoryName = j.FactoryName,
+                CreateTime = a.CreateTime,
+                UpdateTime = a.UpdateTime,
+                CreateID = a.CreateID,
+                CreateName = a.CreateName,
+                UpdateID = a.UpdateID,
+                UpdateName = a.UpdateName
+            });
+
+            return await source.ToListAsync();
+        }
+
+        /// <summary>
+        /// 查询所有设备
+        /// </summary>
+        /// <returns></returns>
+         public async Task< List<EquipmentVM>> GetAllEquipAsync(bool? enable = null)
+        {
+            var source = Db.Queryable<Base_Equipment, Sys_DataRelation, Base_ProductLine, Sys_DataRelation, Base_ProductProcess, Sys_DataRelation, Base_WorkShop, Sys_DataRelation, Base_Factory>((a, b, c, d, e, f, g, h, j) => new object[] {
+                JoinType.Inner,a.ID == b.Form,
+                JoinType.Inner,b.To == c.ID,
+                JoinType.Inner,c.ID == d.Form,
+                JoinType.Inner,d.To == e.ID,
+                JoinType.Inner,e.ID == f.Form,
+                JoinType.Inner,f.To == g.ID,
+                JoinType.Inner,g.ID == h.Form,
+                JoinType.Inner,h.To == j.ID,
+            })
+            .WhereIF(enable != null, (a, b, c, d, e, f, g, h, j) => a.Enable == enable)
+            .Select((a, b, c, d, e, f, g, h, j) => new EquipmentVM
+            {
+                ID = a.ID,
+                EquipNo = a.EquipNo,
+                EquipName = a.EquipName,
+                Remark = a.Remark,
+                Enable = a.Enable,
+                LineUID = c.ID,
+                LineNo = c.LineNo,
+                LineName = c.LineName,
+                ProcessUID = e.ID,
+                ProcessNo = e.ProcessNo,
+                ProcessName = e.ProcessName,
+                WorkShopUID = g.ID,
+                WorkShopNo = g.WorkShopNo,
+                WorkShopName = g.WorkShopName,
+                FactoryUID = j.ID,
+                FactoryNo = j.FactoryNo,
+                FactoryName = j.FactoryName,
+                CreateTime = a.CreateTime,
+                UpdateTime = a.UpdateTime,
+                CreateID = a.CreateID,
+                CreateName = a.CreateName,
+                UpdateID = a.UpdateID,
+                UpdateName = a.UpdateName
+            }).MergeTable().OrderBy(m => m.LineNo);
+
+            return await source.ToListAsync();
+        }
+
+        /// <summary>
+        /// 查询同生产线下是否存在相同设备编码
+        /// </summary>
+        /// <param name="equipNo"></param>
+        /// <param name="lineId"></param>
+        /// <returns></returns>
+         public async Task< bool> AnyAsync(string Id, string equipNo, string lineId)
+        {
+            return await Db.Queryable<Base_Equipment, Sys_DataRelation>((a, b) => new object[] {
+                JoinType.Inner,a.ID == b.Form
+            })
+            .Where((a, b) => a.ID != Id && a.EquipNo == equipNo && b.To == lineId && b.Type == DataRelationType.Equipment_To_Line.ToString()).CountAsync()>0;
         }
         #endregion
 

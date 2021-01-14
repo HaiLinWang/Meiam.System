@@ -12,6 +12,9 @@ using System.Threading.Tasks;
 
 namespace Meiam.System.Hostd.Extensions
 {
+    /// <summary>
+    /// token
+    /// </summary>
     public class TokenManager : ITokenManager
     {
         /// <summary>
@@ -345,6 +348,313 @@ namespace Meiam.System.Hostd.Extensions
             }
 
             return RedisServer.Session.HGet<T>(session, key);
+        }
+
+
+
+
+        #endregion
+
+        #endregion
+
+        #region 异步操作
+        #region Session 操作
+        /// <summary>
+        /// 创建 Session
+        /// </summary>
+        public async Task<string> CreateSessionAsync(Sys_Users userInfo, SourceType source, int hours)
+        {
+            var userSession = Guid.NewGuid().ToString().ToUpper();
+
+            //判断用户是否只允许等于一次
+            if (userInfo.OneSession)
+            {
+              await  RemoveAllSessionAsync(userInfo.UserID);
+            }
+
+            var expireTime = DateTime.Now.AddHours(hours);
+            var timeSpan = new TimeSpan(hours, 0, 0);
+
+            //将 Session 添加用户 Session 列表
+            await RedisServer.Session.HSetAsync(userInfo.UserID, userSession, expireTime);
+            await RedisServer.Session.ExpireAsync(userInfo.UserID, timeSpan);
+
+            //设置 Session 信息
+            var userSessionVM = new UserSessionVM()
+            {
+                UserID = userInfo.UserID,
+                UserName = userInfo.UserName,
+                NickName = userInfo.NickName,
+                Email = userInfo.Email,
+                Sex = userInfo.Sex,
+                AvatarUrl = userInfo.AvatarUrl,
+                QQ = userInfo.QQ,
+                Phone = userInfo.Phone,
+                ProvinceID = userInfo.ProvinceID,
+                Province = userInfo.Province,
+                CityID = userInfo.CityID,
+                City = userInfo.City,
+                CountyID = userInfo.CountyID,
+                County = userInfo.County,
+                Address = userInfo.Address,
+                Remark = userInfo.Remark,
+                IdentityCard = userInfo.IdentityCard,
+                Birthday = userInfo.Birthday,
+                CreateTime = userInfo.CreateTime,
+                Enabled = userInfo.Enabled,
+                OneSession = userInfo.OneSession,
+                Source = source.ToString(),
+                KeepHours = hours,
+                Administrator = userInfo.Administrator,
+                UserPower = _usersService.GetUserPowers(userInfo.UserID),
+                UserRelation = _usersService.GetUserRelation(userInfo.UserID),
+            };
+
+            await RedisServer.Session.HSetAsync(userSession, "UserInfo", userSessionVM);
+            await RedisServer.Session.ExpireAsync(userSession, timeSpan);
+
+            //添加在线记录表
+            await _onlineService.AddAsync(new Sys_Online()
+            {
+                SessionID = userSession,
+                UserID = userInfo.UserID,
+                Source = source.ToString(),
+                IPAddress = _accessor.HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString(),
+                LoginTime = DateTime.Now,
+                UpdateTime = DateTime.Now
+            });
+
+            await _usersService.UpdateAsync(m => m.UserID == userInfo.UserID, m => new Sys_Users { LastLoginTime = DateTime.Now });
+
+            return userSession;
+        }
+
+
+        /// <summary>
+        /// 更新Session
+        /// </summary>
+        /// <param name="userSession">用户Session</param>
+        public async Task UpdateSessionAsync(string userSession)
+        {
+
+            DateTime lastUpdateTime = _memoryCache.Get<DateTime>(userSession);
+
+            if (lastUpdateTime == null || (Convert.ToDateTime(lastUpdateTime).AddMinutes(2) < DateTime.Now))
+            {
+                // 记录本次更新时间
+
+                _memoryCache.Set(userSession, DateTime.Now);
+
+                if (!string.IsNullOrEmpty(userSession))
+                {
+                    //更新在线用户记录最后操作时间
+                    await _onlineService.UpdateAsync(m => m.SessionID == userSession, m => new Sys_Online() { UpdateTime = DateTime.Now });
+
+                    //根据 Session 取出 UserInfo
+                    var userInfo = GetSessionItem<UserSessionVM>(userSession, "UserInfo");
+
+                    var expireTime = DateTime.Now.AddHours(userInfo.KeepHours);
+                    var timeSpan = new TimeSpan(userInfo.KeepHours, 0, 0);
+
+                    //更新 Session 列表中的 Session 过期时间
+                    await RedisServer.Session.HSetAsync(userInfo.UserID, userSession, expireTime);
+                    //更新 Session 列表过期时间
+                    await RedisServer.Session.ExpireAsync(userInfo.UserID, timeSpan);
+                    //更新 Session 过期时间
+                    await RedisServer.Session.ExpireAsync(userSession, timeSpan);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 刷新用户所有Session信息
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        public async Task RefreshSessionAsync(string userId)
+        {
+            if (!await RedisServer.Session.ExistsAsync(userId))
+            {
+                return;
+            }
+
+            //取出 Session 列表所有 Key
+            var keys = await RedisServer.Session.HKeysAsync(userId);
+
+            if (keys.Length <= 0)
+            {
+                return;
+            }
+
+            var userInfo = await _usersService.GetIdAsync(userId);
+
+            foreach (var key in keys)
+            {
+                if (await RedisServer.Session.ExistsAsync(key))
+                {
+                    //根据 Session 取出 UserInfo
+                    var redisUserInfo = await GetSessionItemAsync<UserSessionVM>(key, "UserInfo");
+
+                    //设置 Session 信息
+                    var userSessionVM = new UserSessionVM()
+                    {
+                        UserID = userInfo.UserID,
+                        UserName = userInfo.UserName,
+                        NickName = userInfo.NickName,
+                        Email = userInfo.Email,
+                        Sex = userInfo.Sex,
+                        AvatarUrl = userInfo.AvatarUrl,
+                        QQ = userInfo.QQ,
+                        Phone = userInfo.Phone,
+                        ProvinceID = userInfo.ProvinceID,
+                        Province = userInfo.Province,
+                        CityID = userInfo.CityID,
+                        City = userInfo.City,
+                        CountyID = userInfo.CountyID,
+                        County = userInfo.County,
+                        Address = userInfo.Address,
+                        Remark = userInfo.Remark,
+                        IdentityCard = userInfo.IdentityCard,
+                        Birthday = userInfo.Birthday,
+                        CreateTime = userInfo.CreateTime,
+                        Enabled = userInfo.Enabled,
+                        OneSession = userInfo.OneSession,
+                        Source = redisUserInfo.Source,
+                        KeepHours = redisUserInfo.KeepHours,
+                        Administrator = userInfo.Administrator,
+                        UserPower = _usersService.GetUserPowers(userInfo.UserID),
+                        UserRelation = _usersService.GetUserRelation(userInfo.UserID),
+                    };
+
+                    await RedisServer.Session.HSetAsync(key, "UserInfo", userSessionVM);
+                }
+                else
+                {
+                    await RedisServer.Session.HDelAsync(userId, key);
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// 清除指定 Session
+        /// </summary>
+        public async Task RemoveSessionAsync(string userSession)
+        {
+            if (!string.IsNullOrEmpty(userSession))
+            {
+                //根据 Session 删除在线用户记录
+                await _onlineService.DeleteAsync(m => m.SessionID == userSession);
+
+                if (await RedisServer.Session.ExistsAsync(userSession))
+                {
+                    //根据 Session 取出 UserInfo
+                    var UserInfo = GetSessionItem<UserSessionVM>(userSession, "UserInfo");
+
+                    //删除用户 Session 列表中的 Session
+                    await RedisServer.Session.HDelAsync(UserInfo.UserID, userSession);
+
+                    //删除 Session 
+                    await RedisServer.Session.DelAsync(userSession);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 清除用户所有 Session
+        /// </summary>
+        /// <param name="userId"></param>
+        public async Task RemoveAllSessionAsync(string userId)
+        {
+            if (await RedisServer.Session.ExistsAsync(userId))
+            {
+                //取出 Session 列表所有 Key
+                var keys = await RedisServer.Session.HKeysAsync(userId);
+
+                foreach (var key in keys)
+                {
+                    //删除 Session 
+                    await RedisServer.Session.DelAsync(key);
+
+                    //删除用户 Session 列表中的 Session
+                    await RedisServer.Session.HDelAsync(userId, key);
+                }
+            }
+
+            //删除在线记录
+            await _onlineService.DeleteAsync(m => m.UserID == userId);
+        }
+
+        #endregion
+
+        #region Session 获取信息
+
+        /// <summary>
+        /// 获取Session
+        /// </summary>
+        /// <returns></returns>
+       
+
+        /// <summary>
+        /// 当前登录用户信息
+        /// </summary>
+        /// <returns></returns>
+        public async  Task<UserSessionVM> GetSessionInfoAsync() =>await GetSessionItemAsync<UserSessionVM>("UserInfo");
+
+        /// <summary>
+        /// 判断用户是否登录
+        /// </summary>
+        /// <returns></returns>
+        public async Task<bool> IsAuthenticatedAsync()
+        {
+            if (!string.IsNullOrEmpty(GetSysToken))
+            {
+                if (!await RedisServer.Session.ExistsAsync(GetSysToken))
+                {
+                    //根据 Session 删除在线用户记录
+                    await _onlineService.DeleteAsync(m => m.SessionID == GetSysToken);
+                }
+                else
+                {
+                    await UpdateSessionAsync(GetSysToken);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 获取 Session 内容
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public async Task<T> GetSessionItemAsync<T>(string key)
+        {
+            if (!await RedisServer.Session.ExistsAsync(GetSysToken))
+            {
+                throw new Exception($"GetSessionItem : {key} has Exception");
+            }
+
+            return await RedisServer.Session.HGetAsync<T>(GetSysToken, key);
+        }
+
+
+        /// <summary>
+        /// 获取 Session 内容
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="session"></param>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public async Task<T> GetSessionItemAsync<T>(string session, string key)
+        {
+            if (!await RedisServer.Session.ExistsAsync(session))
+            {
+                throw new Exception($"GetSessionItem : {key} has Exception");
+            }
+
+            return await RedisServer.Session.HGetAsync<T>(session, key);
         }
 
 

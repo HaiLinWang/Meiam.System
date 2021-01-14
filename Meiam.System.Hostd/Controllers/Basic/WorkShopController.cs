@@ -27,7 +27,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 车间定义接口
@@ -40,7 +40,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         private readonly ISysDataRelationService _dataRelationService;
 
 
-        public WorkShopController(ILogger<WorkShopController> logger, TokenManager tokenManager, IBaseWorkShopService workShopService, ISysDataRelationService dataRelationService)
+        public WorkShopController(ILogger<WorkShopController> logger, ITokenManager tokenManager, IBaseWorkShopService workShopService, ISysDataRelationService dataRelationService)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -55,9 +55,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization]
-        public IActionResult Query([FromBody] WorkShopQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] WorkShopQueryDto parm)
         {
-            var response = _workShopService.QueryWorkShopPages(parm);
+            var response = await  _workShopService.QueryWorkShopPagesAsync(parm);
             return toResponse(response);
         }
 
@@ -69,13 +69,13 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult Get(string id = null)
+        public async Task<IActionResult> Get(string id = null)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "车间 Id 不能为空");
             }
-            return toResponse(_workShopService.GetWorkShop(id));
+            return toResponse(await  _workShopService.GetWorkShopAsync(id));
         }
 
         /// <summary>
@@ -85,9 +85,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetAll(bool? enable = null)
+        public async Task<IActionResult> GetAll(bool? enable = null)
         {
-            return toResponse(_workShopService.GetAllWorkShop(enable));
+            return toResponse(await  _workShopService.GetAllWorkShopAsync(enable));
         }
 
 
@@ -97,13 +97,13 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_WORKSHOP_CREATE")]
-        public IActionResult Create([FromBody] WorkShopCreateDto parm)
+        public async Task<IActionResult> Create([FromBody] WorkShopCreateDto parm)
         {
             try
             {
-                var workshop = parm.Adapt<Base_WorkShop>().ToCreate(_tokenManager.GetSessionInfo());
+                var workshop = parm.Adapt<Base_WorkShop>().ToCreate(await _tokenManager.GetSessionInfoAsync());
 
-                if (_workShopService.Any(workshop.ID, parm.WorkShopNo, parm.FactoryUID))
+                if (await  _workShopService.AnyAsync(workshop.ID, parm.WorkShopNo, parm.FactoryUID))
                 {
                     return toResponse(StatusCodeType.Error, $"添加车间编码 {parm.WorkShopNo} 已存在，不能重复！");
                 }
@@ -111,10 +111,10 @@ namespace Meiam.System.Hostd.Controllers.Basic
                 //从 Dto 映射到 实体
                 _dataRelationService.BeginTran();
 
-                var response = _workShopService.Add(workshop);
+                var response = await  _workShopService.AddAsync(workshop);
 
                 //插入关系表
-                _dataRelationService.Add(new Sys_DataRelation
+               await _dataRelationService.AddAsync(new Sys_DataRelation
                 {
                     ID = GetGUID,
                     Form = workshop.ID,
@@ -139,9 +139,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_WORKSHOP_UPDATE")]
-        public IActionResult Update([FromBody] WorkShopUpdateDto parm)
+        public async Task<IActionResult> Update([FromBody] WorkShopUpdateDto parm)
         {
-            if (_workShopService.Any(parm.ID, parm.WorkShopNo, parm.FactoryUID))
+            if (await  _workShopService.AnyAsync(parm.ID, parm.WorkShopNo, parm.FactoryUID))
             {
                 return toResponse(StatusCodeType.Error, $"添加车间编码 {parm.WorkShopNo} 已存在，不能重复！");
             }
@@ -152,7 +152,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
 
                 var userSession = _tokenManager.GetSessionInfo();
 
-                var response = _workShopService.Update(m => m.ID == parm.ID, m => new Base_WorkShop()
+                var response = await  _workShopService.UpdateAsync(m => m.ID == parm.ID, m => new Base_WorkShop()
                 {
                     WorkShopNo = parm.WorkShopNo,
                     WorkShopName = parm.WorkShopName,
@@ -164,10 +164,10 @@ namespace Meiam.System.Hostd.Controllers.Basic
                 });
 
                 //删除关系表
-                _dataRelationService.Delete(m => m.Form == parm.ID && m.Type == DataRelationType.WorkShop_To_Factory.ToString());
+              await  _dataRelationService.DeleteAsync(m => m.Form == parm.ID && m.Type == DataRelationType.WorkShop_To_Factory.ToString());
 
                 //插入关系表
-                _dataRelationService.Add(new Sys_DataRelation
+              await  _dataRelationService.AddAsync(new Sys_DataRelation
                 {
                     ID = GetGUID,
                     Form = parm.ID,
@@ -192,14 +192,14 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_WORKSHOP_DELETE")]
-        public IActionResult Delete(string id)
+        public async Task<IActionResult> Delete(string id)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "删除车间 Id 不能为空");
             }
 
-            if (_dataRelationService.Any(m => m.To == id))
+            if (await _dataRelationService.AnyAsync(m => m.To == id))
             {
                 return toResponse(StatusCodeType.Error, "该车间已被关联，无法删除，若要请先删除关联");
             }
@@ -207,8 +207,8 @@ namespace Meiam.System.Hostd.Controllers.Basic
             try
             {
                 _dataRelationService.BeginTran();
-                _dataRelationService.Delete(m => m.Form == id && m.Type == DataRelationType.WorkShop_To_Factory.ToString());
-                var response = _workShopService.Delete(id);
+               await _dataRelationService.DeleteAsync(m => m.Form == id && m.Type == DataRelationType.WorkShop_To_Factory.ToString());
+                var response = await  _workShopService.DeleteAsync(id);
                 _dataRelationService.CommitTran();
 
                 return toResponse(response);

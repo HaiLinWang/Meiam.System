@@ -30,7 +30,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 用户服务接口
@@ -42,7 +42,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly ISysUserRelationService _relationService;
 
-        public UsersController(ILogger<UsersController> logger, TokenManager tokenManager, ISysUsersService usersService, ISysUserRelationService relationService)
+        public UsersController(ILogger<UsersController> logger, ITokenManager tokenManager, ISysUsersService usersService, ISysUserRelationService relationService)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -57,14 +57,14 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_USERS_VIEW")]
-        public IActionResult Query([FromBody] UsersQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] UsersQueryDto parm)
         {
             //开始拼装查询条件
             var predicate = Expressionable.Create<Sys_Users>();
 
             predicate = predicate.AndIF(!string.IsNullOrEmpty(parm.QueryText), m => m.UserID.Contains(parm.QueryText)  || m.UserName.Contains(parm.QueryText));
 
-            var response = _usersService.GetPages(predicate.ToExpression(), parm);
+            var response = await _usersService.GetPagesAsync(predicate.ToExpression(), parm);
 
             return toResponse(response);
         }
@@ -77,13 +77,13 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_USERS_VIEW")]
-        public IActionResult Get(string id)
+        public async Task<IActionResult> Get(string id)
         {
             if (!string.IsNullOrEmpty(id))
             {
-                return toResponse(_usersService.GetId(id));
+                return toResponse(await _usersService.GetIdAsync(id));
             }
-            return toResponse(_usersService.GetAll());
+            return toResponse(await _usersService.GetAllAsync());
         }
 
 
@@ -93,20 +93,20 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_USERS_CREATE")]
-        public IActionResult Create([FromBody] UsersCreateDto parm)
+        public async Task<IActionResult> Create([FromBody] UsersCreateDto parm)
         {
             //判断用户是否已经存在
-            if (_usersService.Any(m => m.UserID == parm.UserID))
+            if (await _usersService.AnyAsync(m => m.UserID == parm.UserID))
             {
                 return toResponse(StatusCodeType.Error, $"添加 {parm.UserID} 失败，该用户已存在，不能重复！");
             }
 
             //从 Dto 映射到 实体
-            var userInfo = parm.Adapt<Sys_Users>().ToCreate(_tokenManager.GetSessionInfo());
+            var userInfo = parm.Adapt<Sys_Users>().ToCreate(await _tokenManager.GetSessionInfoAsync());
 
             userInfo.Password = PasswordUtil.CreateDbPassword(userInfo.UserID, userInfo.Password.Trim());
 
-            return toResponse(_usersService.Add(userInfo));
+            return toResponse(await _usersService.AddAsync(userInfo));
         }
 
         /// <summary>
@@ -115,14 +115,14 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_USERS_UPDATE")]
-        public IActionResult Update([FromBody] UsersUpdateDto parm)
+        public async Task<IActionResult> Update([FromBody] UsersUpdateDto parm)
         {
-            var userSession = _tokenManager.GetSessionInfo();
+            var userSession = await _tokenManager.GetSessionInfoAsync();
 
             #region 更新用户信息
             #endregion
 
-            var response = _usersService.Update(m => m.UserID == parm.UserID, m =>  new Sys_Users
+            var response =await _usersService.UpdateAsync(m => m.UserID == parm.UserID, m =>  new Sys_Users
             {
                 UserID = parm.UserID,
                 UserName = parm.UserName,
@@ -151,7 +151,7 @@ namespace Meiam.System.Hostd.Controllers.System
 
             #region 更新登录会话记录
 
-            _tokenManager.RefreshSession(parm.UserID);
+            await _tokenManager.RefreshSessionAsync(parm.UserID);
 
             #endregion
 
@@ -165,7 +165,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_USERS_DELETE")]
-        public IActionResult Delete([FromBody] UsersDeleteDto parm)
+        public async Task<IActionResult> Delete([FromBody] UsersDeleteDto parm)
         {
             if (parm.UserIds.Count <=0)
             {
@@ -173,14 +173,14 @@ namespace Meiam.System.Hostd.Controllers.System
             }
 
             // 删除权限记录
-            _relationService.Delete(m => parm.UserIds.Contains(m.UserID));
+           await _relationService.DeleteAsync(m => parm.UserIds.Contains(m.UserID));
             // 删除用户
-            var response = _usersService.Delete(m => parm.UserIds.Contains(m.UserID));
+            var response =await _usersService.DeleteAsync(m => parm.UserIds.Contains(m.UserID));
 
             // 删除登录会话记录
             foreach (var userId in parm.UserIds)
             {
-                _tokenManager.RemoveAllSession(userId);
+                await _tokenManager.RemoveAllSessionAsync(userId);
             }
 
             return toResponse(response);
@@ -193,7 +193,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_USERS_UPDATE")]
-        public IActionResult Enable([FromBody] UsersEnableDto parm)
+        public async Task<IActionResult> Enable([FromBody] UsersEnableDto parm)
         {
             if (parm.UserIds.Count <= 0)
             {
@@ -206,14 +206,14 @@ namespace Meiam.System.Hostd.Controllers.System
                 // 删除登录会话记录
                 foreach (var userId in parm.UserIds)
                 {
-                    _tokenManager.RemoveAllSession(userId);
+                    await _tokenManager.RemoveAllSessionAsync(userId);
                 }
 
-                return toResponse(_usersService.Update(m => parm.UserIds.Contains(m.UserID), m => new Sys_Users { Enabled = false }));
+                return toResponse(await _usersService.UpdateAsync(m => parm.UserIds.Contains(m.UserID), m => new Sys_Users { Enabled = false }));
             }
 
             // 更新用户启用
-            return toResponse(_usersService.Update(m => parm.UserIds.Contains(m.UserID), m => new Sys_Users { Enabled = true }));
+            return toResponse(await    _usersService.UpdateAsync(m => parm.UserIds.Contains(m.UserID), m => new Sys_Users { Enabled = true }));
         }
 
         /// <summary>
@@ -222,7 +222,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_USERS_RESETPASSWD")]
-        public IActionResult ResetPassword([FromBody] UsersResetPasswordDto parm)
+        public async Task<IActionResult> ResetPassword([FromBody] UsersResetPasswordDto parm)
         {
             // 更新用户密码
             var response = _usersService.Update(m => m.UserID == parm.UserID, m => new Sys_Users()
@@ -231,7 +231,7 @@ namespace Meiam.System.Hostd.Controllers.System
             });
 
             // 删除登录会话记录
-            _tokenManager.RemoveAllSession(parm.UserID);
+            await _tokenManager.RemoveAllSessionAsync(parm.UserID);
 
             return toResponse(response);
         }

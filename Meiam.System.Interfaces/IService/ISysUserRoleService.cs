@@ -17,7 +17,7 @@ namespace Meiam.System.Interfaces
     public interface ISysUserRoleService : IBaseService<Sys_UserRole>
     {
 
-        #region CustomInterface 
+        #region CustomInterface  同步
         /// <summary>
         /// 获取具有角色的用户列表
         /// </summary>
@@ -25,6 +25,13 @@ namespace Meiam.System.Interfaces
         /// <returns></returns>
         List<Sys_Users> GetRoleUsers(string roleId);
         #endregion
-
+        #region CustomInterface  异步
+        /// <summary>
+        /// 获取具有角色的用户列表
+        /// </summary>
+        /// <param name="roleId">角色Id</param>
+        /// <returns></returns>
+       Task<List<Sys_Users>> GetRoleUsersAsync(string roleId);
+        #endregion
     }
 }

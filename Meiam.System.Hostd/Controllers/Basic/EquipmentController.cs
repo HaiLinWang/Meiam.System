@@ -28,7 +28,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 机台定义接口
@@ -41,7 +41,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         private readonly ISysDataRelationService _dataRelationService;
 
 
-        public EquipmentController(ILogger<EquipmentController> logger, TokenManager tokenManager, IBaseEquipmentService equipmentService, ISysDataRelationService dataRelationService)
+        public EquipmentController(ILogger<EquipmentController> logger, ITokenManager tokenManager, IBaseEquipmentService equipmentService, ISysDataRelationService dataRelationService)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -56,9 +56,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization]
-        public IActionResult Query([FromBody] EquipmentQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] EquipmentQueryDto parm)
         {
-            var response = _equipmentService.QueryEquipPages(parm);
+            var response = await _equipmentService.QueryEquipPagesAsync(parm);
             return toResponse(response);
         }
 
@@ -70,13 +70,13 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult Get(string id = null)
+        public async Task<IActionResult> Get(string id = null)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "生机台 Id 不能为空");
             }
-            return toResponse(_equipmentService.GetEquip(id));
+            return toResponse(await _equipmentService.GetEquipAsync(id));
         }
 
         /// <summary>
@@ -86,9 +86,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetAll(bool? enable = null)
+        public async Task<IActionResult> GetAll(bool? enable = null)
         {
-            return toResponse(_equipmentService.GetAllEquip(enable));
+            return toResponse(await _equipmentService.GetAllEquipAsync(enable));
         }
 
 
@@ -99,13 +99,13 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetEquipByNo(string equipNo = null)
+        public async Task<IActionResult> GetEquipByNo(string equipNo = null)
         {
             if (string.IsNullOrEmpty(equipNo))
             {
                 return toResponse(StatusCodeType.Error, "机台编码不能为空");
             }
-            return toResponse(_equipmentService.GetEquipByNo(equipNo));
+            return toResponse(await _equipmentService.GetEquipByNoAsync(equipNo));
         }
 
         /// <summary>
@@ -116,13 +116,13 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetEquipByLineNo(string lineNo = null, bool? enable = null)
+        public async Task<IActionResult> GetEquipByLineNo(string lineNo = null, bool? enable = null)
         {
             if (string.IsNullOrEmpty(lineNo))
             {
                 return toResponse(StatusCodeType.Error, "设备编码不能为空");
             }
-            return toResponse(_equipmentService.GetEquipByLine(lineNo, enable).OrderBy(m => m.EquipNo));
+            return toResponse((await _equipmentService.GetEquipByLineAsync(lineNo, enable)).OrderBy(m => m.EquipNo));
         }
 
         /// <summary>
@@ -131,14 +131,14 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_EQUIPMENT_CREATE")]
-        public IActionResult Create([FromBody] EquipmentCreateDto parm)
+        public async Task<IActionResult> Create([FromBody] EquipmentCreateDto parm)
         {
 
             try
             {
-                var line = parm.Adapt<Base_Equipment>().ToCreate(_tokenManager.GetSessionInfo());
+                var line = parm.Adapt<Base_Equipment>().ToCreate(await _tokenManager.GetSessionInfoAsync());
 
-                if (_equipmentService.Any(m => m.EquipNo == parm.EquipNo))
+                if (await _equipmentService.AnyAsync(m => m.EquipNo == parm.EquipNo))
                 {
                     return toResponse(StatusCodeType.Error, $"添加机台编码 {parm.EquipNo} 已存在，不能重复！");
                 }
@@ -146,10 +146,10 @@ namespace Meiam.System.Hostd.Controllers.Basic
                 //从 Dto 映射到 实体
                 _dataRelationService.BeginTran();
 
-                var response = _equipmentService.Add(line);
+                var response = await _equipmentService.AddAsync(line);
 
                 //插入关系表
-                _dataRelationService.Add(new Sys_DataRelation
+               await _dataRelationService.AddAsync(new Sys_DataRelation
                 {
                     ID = GetGUID,
                     Form = line.ID,
@@ -174,9 +174,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_EQUIPMENT_UPDATE")]
-        public IActionResult Update([FromBody] EquipmentUpdateDto parm)
+        public async Task<IActionResult> Update([FromBody] EquipmentUpdateDto parm)
         {
-            if (_equipmentService.Any(m => m.EquipNo == parm.EquipNo && m.ID != parm.ID))
+            if (await _equipmentService.AnyAsync(m => m.EquipNo == parm.EquipNo && m.ID != parm.ID))
             {
                 return toResponse(StatusCodeType.Error, $"添加机台编码 {parm.EquipNo} 已存在，不能重复！");
             }
@@ -185,9 +185,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
             {
                 _dataRelationService.BeginTran();
 
-                var userSession = _tokenManager.GetSessionInfo();
+                var userSession =await _tokenManager.GetSessionInfoAsync();
 
-                var response = _equipmentService.Update(m => m.ID == parm.ID, m => new Base_Equipment()
+                var response = await _equipmentService.UpdateAsync(m => m.ID == parm.ID, m => new Base_Equipment()
                 {
                     EquipNo = parm.EquipNo,
                     EquipName = parm.EquipName,
@@ -199,10 +199,10 @@ namespace Meiam.System.Hostd.Controllers.Basic
                 });
 
                 //删除关系表
-                _dataRelationService.Delete(m => m.Form == parm.ID && m.Type == DataRelationType.Equipment_To_Line.ToString());
+               await _dataRelationService.DeleteAsync(m => m.Form == parm.ID && m.Type == DataRelationType.Equipment_To_Line.ToString());
 
                 //插入关系表
-                _dataRelationService.Add(new Sys_DataRelation
+               await _dataRelationService.AddAsync(new Sys_DataRelation
                 {
                     ID = GetGUID,
                     Form = parm.ID,
@@ -227,14 +227,14 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_EQUIPMENT_DELETE")]
-        public IActionResult Delete(string id)
+        public async Task<IActionResult> Delete(string id)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "删除机台 Id 不能为空");
             }
 
-            if (_dataRelationService.Any(m => m.To == id))
+            if (await _dataRelationService.AnyAsync(m => m.To == id))
             {
                 return toResponse(StatusCodeType.Error, "该机台已被关联，无法删除，若要请先删除关联");
             }
@@ -243,7 +243,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
             {
                 _dataRelationService.BeginTran();
                 _dataRelationService.Delete(m => m.Form == id && m.Type == DataRelationType.Equipment_To_Line.ToString());
-                var response = _equipmentService.Delete(id);
+                var response = await _equipmentService.DeleteAsync(id);
                 _dataRelationService.CommitTran();
 
                 return toResponse(response);

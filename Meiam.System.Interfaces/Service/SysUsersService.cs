@@ -39,6 +39,20 @@ namespace Meiam.System.Interfaces
                 .Select((a, b, c) => c.Name).ToList();
         }
 
+        public async Task<List<string>> GetUserPowersAsync(string userId)
+        {
+            // 超级管理员拥有所有权限
+            if (userId == "admin")
+            {
+                return await Db.Queryable<Sys_Power>().Select(m => m.Name).ToListAsync();
+            }
+
+            return await Db.Queryable<Sys_UserRole, Sys_RolePower, Sys_Power>
+                ((a, b, c) => new object[] { JoinType.Inner, a.RoleID == b.RoleUID, JoinType.Inner, b.PowerUID == c.ID })
+                .Where((a, b, c) => a.UserID == userId)
+                .Select((a, b, c) => c.Name).ToListAsync();
+        }
+
         /// <summary>
         /// 获取用户拥有的数据权限列表
         /// </summary>
@@ -48,6 +62,11 @@ namespace Meiam.System.Interfaces
             return Db.Queryable<Sys_UserRelation>().Where(m => m.UserID == userId).ToList();
         }
 
+        public async Task<List<Sys_UserRelation>> GetUserRelationAsync(string userId)
+        {
+            return await Db.Queryable<Sys_UserRelation>().Where(m => m.UserID == userId).ToListAsync();
+        }
+      
         #endregion
 
     }

@@ -23,7 +23,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 日志管理接口
@@ -35,7 +35,7 @@ namespace Meiam.System.Hostd.Controllers.System
         /// </summary>
         private readonly ISysOptionsService _optionService;
 
-        public OptionsController(TokenManager tokenManager, ISysOptionsService optionService, ILogger<OptionsController> logger)
+        public OptionsController(ITokenManager tokenManager, ISysOptionsService optionService, ILogger<OptionsController> logger)
         {
             _tokenManager = tokenManager;
             _optionService = optionService;
@@ -49,14 +49,14 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization]
-        public IActionResult Query([FromBody] OptionsQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] OptionsQueryDto parm)
         {
             //开始拼装查询条件
             var predicate = Expressionable.Create<Sys_Options>();
 
             predicate = predicate.AndIF(!string.IsNullOrEmpty(parm.QueryText), m => m.Option.Contains(parm.QueryText));
 
-            var response = _optionService.GetPages(predicate.ToExpression(), parm);
+            var response =await await  _optionService.GetPagesAsync(predicate.ToExpression(), parm);
 
             return toResponse(response);
         }
@@ -69,13 +69,13 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult Get(string id)
+        public async Task<IActionResult> Get(string id)
         {
             if (!string.IsNullOrEmpty(id))
             {
-                return toResponse(_optionService.GetId(id));
+                return toResponse( await  _optionService.GetIdAsync(id));
             }
-            return toResponse(_optionService.GetAll());
+            return toResponse(await  _optionService.GetAllAsync());
         }
 
         /// <summary>
@@ -85,14 +85,14 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetOption(string option)
+        public async Task<IActionResult> GetOption(string option)
         {
             if (string.IsNullOrEmpty(option))
             {
                 return toResponse(StatusCodeType.Error, "group 不能为空");
             }
 
-            var response = (_optionService.GetWhere(m => m.Option == option)).OrderBy(m => m.Option).OrderBy(m => m.SortIndex);
+            var response = (await  _optionService.GetWhereAsync(m => m.Option == option)).OrderBy(m => m.Option).OrderBy(m => m.SortIndex);
 
             return toResponse(response);
         }
@@ -103,12 +103,12 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_OPTIONS_CREATE")]
-        public IActionResult Create([FromBody] OptionsCreateDto parm)
+        public async Task<IActionResult> Create([FromBody] OptionsCreateDto parm)
         {
             //从 Dto 映射到 实体
-            var options = parm.Adapt<Sys_Options>().ToCreate(_tokenManager.GetSessionInfo());
+            var options = parm.Adapt<Sys_Options>().ToCreate(await _tokenManager.GetSessionInfoAsync());
 
-            return toResponse(_optionService.Add(options));
+            return toResponse(await  _optionService.AddAsync(options));
         }
 
         /// <summary>
@@ -117,11 +117,11 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_OPTIONS_UPDATE")]
-        public IActionResult Update([FromBody] OptionsUpdateDto parm)
+        public async Task<IActionResult> Update([FromBody] OptionsUpdateDto parm)
         {
-            var userSession = _tokenManager.GetSessionInfo();
+            var userSession = await _tokenManager.GetSessionInfoAsync();
 
-            return toResponse(_optionService.Update(m => m.ID == parm.ID, m => new Sys_Options()
+            return toResponse(await  _optionService.UpdateAsync(m => m.ID == parm.ID, m => new Sys_Options()
             {
                 Option = parm.Option,
                 Label = parm.Label,
@@ -140,14 +140,14 @@ namespace Meiam.System.Hostd.Controllers.System
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_OPTIONS_DELETE")]
-        public IActionResult Delete(string id)
+        public async Task<IActionResult> Delete(string id)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "删除字典 Id 不能为空");
             }
 
-            var response = _optionService.Delete(id);
+            var response = await  _optionService.DeleteAsync(id);
 
             return toResponse(response);
         }

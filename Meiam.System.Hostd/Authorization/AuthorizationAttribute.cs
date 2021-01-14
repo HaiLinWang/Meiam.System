@@ -24,7 +24,7 @@ namespace Meiam.System.Hostd.Authorization
         public void OnAuthorization(AuthorizationFilterContext context)
         {
             #region 判断是否登录
-            var _tokenManager = context.HttpContext.RequestServices.GetService<TokenManager>();
+            var _tokenManager = context.HttpContext.RequestServices.GetService<ITokenManager>();
 
             if (!_tokenManager.IsAuthenticated())
             {

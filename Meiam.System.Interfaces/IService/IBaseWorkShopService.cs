@@ -54,6 +54,42 @@ namespace Meiam.System.Interfaces
         /// <returns></returns>
         bool Any(string Id, string workShopNo, string factoryId);
         #endregion
+        #region CustomInterface 
+        /// <summary>
+        /// 查询车间（分页）
+        /// </summary>
+        /// <param name="parm"></param>>
+        /// <returns></returns>
+        Task<PagedInfo<WorkShopVM>> QueryWorkShopPagesAsync(WorkShopQueryDto parm);
 
+        /// <summary>
+        /// 根据ID查询车间
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="Async"></param>
+        /// <returns></returns>
+       Task<WorkShopVM> GetWorkShopAsync(string id);
+
+        /// <summary>
+        /// 查询所有车间
+        /// </summary>
+        /// <returns></returns>
+        Task<List<WorkShopVM>> GetAllWorkShopAsync(bool? enable = null);
+
+        /// <summary>
+        /// 查询所有车间
+        /// </summary>
+        /// <returns></returns>
+       Task<List<WorkShopVM>> GetAllWorkShopCacheAsync(bool useCache = false, int cacheSecond = 3600);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="Id"></param>
+        /// <param name="workShopNo"></param>
+        /// <param name="factoryId"></param>
+        /// <returns></returns>
+        Task<bool> AnyAsync(string Id, string workShopNo, string factoryId);
+        #endregion
     }
 }

@@ -18,7 +18,7 @@ namespace Meiam.System.Interfaces
     public class SysUserRelationService : BaseService<Sys_UserRelation>, ISysUserRelationService
     {
 
-        #region CustomInterface 
+        #region CustomInterface  同步
         /// <summary>
         /// 获取用户拥有公司
         /// </summary>
@@ -99,6 +99,86 @@ namespace Meiam.System.Interfaces
             return query.Where(m => ids.Contains(m.ID)).ToList();
         }
         #endregion
+        #region CustomInterface  异步
+        /// <summary>
+        /// 获取用户拥有公司
+        /// </summary>
+        /// <param name="userSession"></param>
+        /// <param name="useCache"></param>
+        /// <param name="cacheSecond"></param>
+        /// <returns></returns>
+        public async Task< List<Base_Company>> GetUserCompanyAsync(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600)
+        {
+            var ids = userSession.UserRelation.Where(m => m.ObjectType == UserRelationType.Company.ToString()).Select(m => m.ObjectID).ToList();
 
+            var query =await Db.Queryable<Base_Company>().WithCacheIF(useCache, cacheSecond).ToListAsync();
+
+            return query.Where(m => ids.Contains(m.ID)).ToList();
+        }
+
+        /// <summary>
+        /// 获取用户拥有工厂
+        /// </summary>
+        /// <param name="userSession"></param>
+        /// <param name="useCache"></param>
+        /// <param name="cacheSecond"></param>
+        /// <returns></returns>
+        public async Task< List<Base_Factory>> GetUserFactoryAsync(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600)
+        {
+            var ids = userSession.UserRelation.Where(m => m.ObjectType == UserRelationType.Factory.ToString()).Select(m => m.ObjectID).ToList();
+
+            var query = await Db.Queryable<Base_Factory>().WithCacheIF(useCache, cacheSecond).ToListAsync();
+
+            return query.Where(m => ids.Contains(m.ID)).ToList();
+        }
+
+        /// <summary>
+        /// 获取用户拥有车间
+        /// </summary>
+        /// <param name="userSession"></param>
+        /// <param name="useCache"></param>
+        /// <param name="cacheSecond"></param>
+        /// <returns></returns>
+        public async Task< List<Base_WorkShop>> GetUserWorkShopAsync(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600)
+        {
+            var ids = userSession.UserRelation.Where(m => m.ObjectType == UserRelationType.WorkShop.ToString()).Select(m => m.ObjectID).ToList();
+
+            var query = await Db.Queryable<Base_WorkShop>().WithCacheIF(useCache, cacheSecond).ToListAsync();
+
+            return query.Where(m => ids.Contains(m.ID)).ToList();
+        }
+
+        /// <summary>
+        /// 获取用户拥有工序
+        /// </summary>
+        /// <param name="userSession"></param>
+        /// <param name="useCache"></param>
+        /// <param name="cacheSecond"></param>
+        /// <returns></returns>
+        public async Task< List<Base_ProductProcess>> GetUserProductProcessAsync(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600)
+        {
+            var ids = userSession.UserRelation.Where(m => m.ObjectType == UserRelationType.ProductProcess.ToString()).Select(m => m.ObjectID).ToList();
+
+            var query = await Db.Queryable<Base_ProductProcess>().WithCacheIF(useCache, cacheSecond).ToListAsync();
+
+            return query.Where(m => ids.Contains(m.ID)).ToList();
+        }
+
+        /// <summary>
+        /// 获取用户拥有生产线
+        /// </summary>
+        /// <param name="userSession"></param>
+        /// <param name="useCache"></param>
+        /// <param name="cacheSecond"></param>
+        /// <returns></returns>
+        public async Task< List<Base_ProductLine>> GetUserProductLineAsync(UserSessionVM userSession, bool useCache = false, int cacheSecond = 3600)
+        {
+            var ids = userSession.UserRelation.Where(m => m.ObjectType == UserRelationType.ProductLine.ToString()).Select(m => m.ObjectID).ToList();
+
+            var query = await Db.Queryable<Base_ProductLine>().WithCacheIF(useCache, cacheSecond).ToListAsync();
+
+            return query.Where(m => ids.Contains(m.ID)).ToList();
+        }
+        #endregion
     }
 }

@@ -27,7 +27,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <summary>
         /// 会话管理接口
         /// </summary>
-        private readonly TokenManager _tokenManager;
+        private readonly ITokenManager _tokenManager;
 
         /// <summary>
         /// 工序定义接口
@@ -40,7 +40,7 @@ namespace Meiam.System.Hostd.Controllers.Basic
         private readonly ISysDataRelationService _dataRelationService;
 
 
-        public ProductProcessController(ILogger<ProductProcessController> logger, TokenManager tokenManager, IBaseProductProcessService processService, ISysDataRelationService dataRelationService)
+        public ProductProcessController(ILogger<ProductProcessController> logger, ITokenManager tokenManager, IBaseProductProcessService processService, ISysDataRelationService dataRelationService)
         {
             _logger = logger;
             _tokenManager = tokenManager;
@@ -55,9 +55,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization]
-        public IActionResult Query([FromBody] ProductProcessQueryDto parm)
+        public async Task<IActionResult> Query([FromBody] ProductProcessQueryDto parm)
         {
-            var response = _processService.QueryProcessPages(parm);
+            var response = await _processService.QueryProcessPagesAsync(parm);
             return toResponse(response);
         }
 
@@ -69,13 +69,13 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult Get(string id = null)
+        public async Task<IActionResult> Get(string id = null)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "生工序 Id 不能为空");
             }
-            return toResponse(_processService.GetProcess(id));
+            return toResponse(await _processService.GetProcessAsync(id));
         }
 
         /// <summary>
@@ -85,9 +85,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization]
-        public IActionResult GetAll(bool? enable = null)
+        public async Task<IActionResult> GetAll(bool? enable = null)
         {
-            return toResponse(_processService.GetAllProcess(enable));
+            return toResponse(await _processService.GetAllProcessAsync(enable));
         }
 
 
@@ -97,14 +97,14 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_WORKSHOP_CREATE")]
-        public IActionResult Create([FromBody] ProductProcessCreateDto parm)
+        public async Task<IActionResult> Create([FromBody] ProductProcessCreateDto parm)
         {
             try
             {
 
-                var process = parm.Adapt<Base_ProductProcess>().ToCreate(_tokenManager.GetSessionInfo());
+                var process = parm.Adapt<Base_ProductProcess>().ToCreate(await _tokenManager.GetSessionInfoAsync());
 
-                if (_processService.Any(m => m.ProcessNo == parm.ProcessNo))
+                if (await _processService.AnyAsync(m => m.ProcessNo == parm.ProcessNo))
                 {
                     return toResponse(StatusCodeType.Error, $"添加工序编码 {parm.ProcessNo} 已存在，不能重复！");
                 }
@@ -112,10 +112,10 @@ namespace Meiam.System.Hostd.Controllers.Basic
                 //从 Dto 映射到 实体
                 _dataRelationService.BeginTran();
 
-                var response = _processService.Add(process);
+                var response = await _processService.AddAsync(process);
 
                 //插入关系表
-                _dataRelationService.Add(new Sys_DataRelation
+                await _dataRelationService.AddAsync(new Sys_DataRelation
                 {
                     ID = GetGUID,
                     Form = process.ID,
@@ -140,9 +140,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpPost]
         [Authorization(Power = "PRIV_WORKSHOP_UPDATE")]
-        public IActionResult Update([FromBody] ProductProcessUpdateDto parm)
+        public async Task<IActionResult> Update([FromBody] ProductProcessUpdateDto parm)
         {
-            if (_processService.Any(m => m.ProcessNo == parm.ProcessNo && m.ID != parm.ID))
+            if (await _processService.AnyAsync(m => m.ProcessNo == parm.ProcessNo && m.ID != parm.ID))
             {
                 return toResponse(StatusCodeType.Error, $"添加工序编码 {parm.ProcessNo} 已存在，不能重复！");
             }
@@ -151,9 +151,9 @@ namespace Meiam.System.Hostd.Controllers.Basic
             {
                 _dataRelationService.BeginTran();
 
-                var userSession = _tokenManager.GetSessionInfo();
+                var userSession = await _tokenManager.GetSessionInfoAsync();
 
-                var response = _processService.Update(m => m.ID == parm.ID, m => new Base_ProductProcess()
+                var response = await _processService.UpdateAsync(m => m.ID == parm.ID, m => new Base_ProductProcess()
                 {
                     ProcessNo = parm.ProcessNo,
                     ProcessName = parm.ProcessName,
@@ -165,10 +165,10 @@ namespace Meiam.System.Hostd.Controllers.Basic
                 });
 
                 //删除关系表
-                _dataRelationService.Delete(m => m.Form == parm.ID && m.Type == DataRelationType.Process_To_WorkShop.ToString());
+                await _dataRelationService.DeleteAsync(m => m.Form == parm.ID && m.Type == DataRelationType.Process_To_WorkShop.ToString());
 
                 //插入关系表
-                _dataRelationService.Add(new Sys_DataRelation
+                await _dataRelationService.AddAsync(new Sys_DataRelation
                 {
                     ID = GetGUID,
                     Form = parm.ID,
@@ -193,14 +193,14 @@ namespace Meiam.System.Hostd.Controllers.Basic
         /// <returns></returns>
         [HttpGet]
         [Authorization(Power = "PRIV_WORKSHOP_DELETE")]
-        public IActionResult Delete(string id)
+        public async Task<IActionResult> Delete(string id)
         {
             if (string.IsNullOrEmpty(id))
             {
                 return toResponse(StatusCodeType.Error, "删除工序 Id 不能为空");
             }
 
-            if (_dataRelationService.Any(m => m.To == id))
+            if (await _dataRelationService.AnyAsync(m => m.To == id))
             {
                 return toResponse(StatusCodeType.Error, "该工序已被关联，无法删除，若要请先删除关联");
             }
@@ -208,8 +208,8 @@ namespace Meiam.System.Hostd.Controllers.Basic
             try
             {
                 _dataRelationService.BeginTran();
-                _dataRelationService.Delete(m => m.Form == id && m.Type == DataRelationType.Process_To_WorkShop.ToString());
-                var response = _processService.Delete(id);
+                await _dataRelationService.DeleteAsync(m => m.Form == id && m.Type == DataRelationType.Process_To_WorkShop.ToString());
+                var response = await _processService.DeleteAsync(id);
                 _dataRelationService.CommitTran();
 
                 return toResponse(response);
